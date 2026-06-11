@@ -1,0 +1,124 @@
+/* ============================================================
+   Zemen Bank — Independent Director Portal
+   Design tokens ported verbatim from design/styles.css (:root).
+   This is the visual source of truth; screen-specific styles live
+   alongside their components as they are ported one at a time.
+   ============================================================ */
+
+:root {
+  /* Brand */
+  --brand: #ed1d24;
+  --brand-700: #c2141a;
+  --brand-800: #9e0f15;
+  --brand-900: #6e0a0e;
+  --brand-tint: #fcebeb;
+  --brand-tint-2: #f7dddd;
+
+  /* Ink / neutrals (warm) */
+  --ink: #1a1613;
+  --ink-2: #57504a;
+  --ink-3: #8a827a;
+  --ink-4: #b6ada2;
+
+  /* Surfaces */
+  --paper: #f7f3ec;
+  --paper-2: #efe9df;
+  --surface: #ffffff;
+  --surface-2: #fbf8f2;
+  --line: #e7e0d4;
+  --line-2: #d8cfc0;
+  --line-3: #cabead;
+
+  /* Status pipeline */
+  --st-draft: #8a827a;
+  --st-submit: #2b6cb0;
+  --st-review: #b8860b;
+  --st-short: #1e7f4f;
+  --st-info: #c2410c;
+  --st-reject: #9a3b3b;
+  --st-select: #ed1d24;
+
+  --ok: #1e7f4f;
+  --ok-bg: #e6f2eb;
+  --warn: #b8860b;
+  --warn-bg: #fbf1dc;
+  --err: #c2141a;
+  --err-bg: #fcebeb;
+
+  /* Type */
+  --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --sans: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+  /* Radii / shadow */
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --sh-1: 0 1px 2px rgba(26, 22, 19, 0.05), 0 1px 3px rgba(26, 22, 19, 0.06);
+  --sh-2: 0 4px 14px rgba(26, 22, 19, 0.07), 0 2px 4px rgba(26, 22, 19, 0.05);
+  --sh-3: 0 18px 48px rgba(26, 22, 19, 0.16), 0 6px 16px rgba(26, 22, 19, 0.1);
+
+  /* Layout */
+  --maxw: 1240px;
+  --header-h: 68px;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-size: 15px;
+  line-height: 1.5;
+}
+#root {
+  min-height: 100vh;
+}
+::selection {
+  background: var(--brand);
+  color: #fff;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+p {
+  margin: 0;
+}
+a {
+  color: inherit;
+}
+button {
+  font-family: inherit;
+}
+
+.serif {
+  font-family: var(--serif);
+  font-weight: 500;
+}
+.mono {
+  font-family: var(--mono);
+}
+
+/* ----- Animation safety rule (see README "Animation note") -----
+   Entrance animations are transform-only; resting state is always visible so a
+   non-running animation can never hide content. State-encoding (selected/active)
+   is never gated behind a transition. */
+.fade-up {
+  opacity: 1;
+}

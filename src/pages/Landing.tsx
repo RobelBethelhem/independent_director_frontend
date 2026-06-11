@@ -1,0 +1,94 @@
+import { Link, useNavigate } from 'react-router-dom';
+import { Globe, Save, ShieldCheck } from 'lucide-react';
+
+/**
+ * Public landing (Applicant.Landing). Hero + info card + 3-up feature row.
+ * CTAs route into the auth flow in register vs. login mode.
+ */
+export function Landing() {
+  const navigate = useNavigate();
+  return (
+    <div className="fade-up">
+      <section className="hero">
+        <div className="bg-mark" aria-hidden>
+          Z
+        </div>
+        <div className="container hero-grid">
+          <div>
+            <div className="eyebrow">Zemen Bank · Board Recruitment</div>
+            <h1 style={{ marginTop: 16 }}>
+              Apply to serve as an <span className="accent">Independent Director</span> of Zemen Bank
+            </h1>
+            <p className="lede">
+              A fully digital, paperless application for individuals seeking to join the Board as an
+              Independent Director. Save your progress and submit securely from anywhere.
+            </p>
+            <div className="actions">
+              <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth?mode=register')}>
+                Start your application
+              </button>
+              <button className="btn btn-ghost btn-lg" onClick={() => navigate('/auth?mode=login')}>
+                Continue / track application
+              </button>
+            </div>
+          </div>
+
+          <aside className="hero-card">
+            <div className="eyebrow" style={{ color: 'var(--ok)' }}>
+              Application window open
+            </div>
+            <div className="kv">
+              <span className="k">Closes</span>
+              <span className="v">Two months from opening</span>
+            </div>
+            <div className="kv">
+              <span className="k">Eligibility</span>
+              <span className="v">Independent of ownership & management</span>
+            </div>
+            <div className="kv">
+              <span className="k">Time</span>
+              <span className="v">~20–30 minutes</span>
+            </div>
+            <div className="kv">
+              <span className="k">Documents</span>
+              <span className="v">CV, certificates, ID</span>
+            </div>
+            <div className="kv">
+              <span className="k">Process</span>
+              <span className="v">Screening → Committee review → Outcome</span>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <div className="container">
+        <div className="feature-row">
+          <div className="feature">
+            <div className="fic" aria-hidden>
+              <Globe size={20} />
+            </div>
+            <h4>Apply from anywhere</h4>
+            <p>Applicants inside or outside Ethiopia can apply entirely online — no physical paperwork.</p>
+          </div>
+          <div className="feature">
+            <div className="fic" aria-hidden>
+              <Save size={20} />
+            </div>
+            <h4>Save & continue</h4>
+            <p>Your draft is saved automatically. Return any time before the window closes to finish.</p>
+          </div>
+          <div className="feature">
+            <div className="fic" aria-hidden>
+              <ShieldCheck size={20} />
+            </div>
+            <h4>Secure & confidential</h4>
+            <p>Encrypted in transit and at rest, with role-based access for review and screening.</p>
+          </div>
+        </div>
+        <p className="muted" style={{ paddingBottom: 40 }}>
+          Already started? <Link to="/auth?mode=login">Continue your application →</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
