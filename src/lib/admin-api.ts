@@ -1,4 +1,4 @@
-import { api, tokenStore } from './api';
+import { api, tokenStore, API_BASE } from './api';
 import type { ApplicationStatus } from './types';
 
 export interface AdminApplicant {
@@ -223,7 +223,7 @@ export const adminApi = {
   },
   async exportCsv(f: SearchFilters) {
     const s = searchQs({ ...f, page: undefined });
-    const res = await fetch(`/api/v1/admin/applications/export${s ? `?${s}` : ''}`, {
+    const res = await fetch(`${API_BASE}/admin/applications/export${s ? `?${s}` : ''}`, {
       headers: tokenStore.access ? { Authorization: `Bearer ${tokenStore.access}` } : {},
     });
     if (!res.ok) throw new Error('Export failed');

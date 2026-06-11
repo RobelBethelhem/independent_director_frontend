@@ -1,6 +1,11 @@
 import type { ApiError, AuthSession } from './types';
 
-const API_BASE = '/api/v1';
+/**
+ * In dev this stays '/api/v1' (proxied to the backend by Vite). In production set
+ * VITE_API_BASE_URL to the deployed API base, e.g. https://api.example.com/api/v1.
+ */
+export const API_BASE =
+  ((import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')) || '/api/v1';
 
 const ACCESS_KEY = 'zb.accessToken';
 const REFRESH_KEY = 'zb.refreshToken';
