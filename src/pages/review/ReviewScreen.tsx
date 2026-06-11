@@ -15,6 +15,7 @@ import {
 import { reviewApi, type ReviewDossier } from '../../lib/review-api';
 import { Avatar, Field, Textarea } from '../../components/ui';
 import { DocumentPreview } from '../../components/DocumentPreview';
+import { SubmitConfirmModal } from '../../components/SubmitConfirmModal';
 import { GroupedDocs } from '../../components/GroupedDocs';
 import { CRITERIA, CRITERIA_GROUPS, DECLARATIONS, SCORE_MAX } from '../../lib/constants';
 import { fmtDate } from '../../lib/format';
@@ -53,6 +54,7 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
   const [saving, setSaving] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<Record<string, Suggestion>>({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     void reviewApi.dossier(id).then((d) => {
@@ -114,6 +116,35 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
           loadPreview={() => reviewApi.preview(a.id, previewId)}
           loadDownload={() => reviewApi.download(a.id, previewId)}
           onClose={() => setPreviewId(null)}
+        />
+      )}
+      {confirmOpen && (
+        <SubmitConfirmModal
+          title="Reviewer Declaration"
+          confirmLabel="Submit assessment"
+          busy={saving}
+          onConfirm={() => void save(true)}
+          onClose={() => setConfirmOpen(false)}
+          declaration={
+            <>
+              <p style={{ marginTop: 0 }}>
+                I, the undersigned, hereby declare that I have reviewed the application of{' '}
+                <b>{fullName(a) || a.reference}</b> in my capacity as <b>Reviewer</b>.
+              </p>
+              <p>
+                I confirm that I have conducted the review objectively, independently, and to the best of my
+                professional knowledge and judgment. I further declare that:
+              </p>
+              <ul style={{ margin: '0 0 0 2px', paddingLeft: 18, lineHeight: 1.7 }}>
+                <li>I have no conflict of interest that could influence my review of this application.</li>
+                <li>My comments, recommendations, and/or approvals are based solely on professional assessment.</li>
+                <li>
+                  I understand that my review contributes to the quality assurance and governance process of Zemen
+                  Bank S.C.
+                </li>
+              </ul>
+            </>
+          }
         />
       )}
       <div className="wrap" style={{ paddingTop: 24, paddingBottom: 60 }}>
@@ -460,7 +491,7 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
                     <button className="btn btn-ghost" style={{ flex: 1 }} disabled={saving} onClick={() => void save(false)}>
                       <Save size={16} /> Save draft
                     </button>
-                    <button className="btn btn-primary" style={{ flex: 1.4 }} disabled={!allScored || saving} onClick={() => void save(true)}>
+                    <button className="btn btn-primary" style={{ flex: 1.4 }} disabled={!allScored || saving} onClick={() => setConfirmOpen(true)}>
                       <Check size={16} /> Submit
                     </button>
                   </div>

@@ -29,6 +29,7 @@ import {
 import { StepDocuments } from './wizard/StepDocuments';
 import { StepReview } from './wizard/StepReview';
 import { DocumentPreview } from '../components/DocumentPreview';
+import { SubmitConfirmModal } from '../components/SubmitConfirmModal';
 
 const STEPS = [
   { id: 'personal', label: 'Personal & Contact' },
@@ -78,6 +79,7 @@ export function Wizard() {
   const [submitting, setSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
 
   // Latest form snapshot (saves read from here so debounced flushes see fresh data).
@@ -158,6 +160,8 @@ export function Wizard() {
       const result = await applicationsApi.submit(appId);
       navigate('/success', { state: { reference: result.reference } });
     } catch (err) {
+      // Close the confirmation so the errors are visible on the review page.
+      setConfirmOpen(false);
       if (err instanceof HttpError && err.body && typeof err.body === 'object' && 'errors' in err.body) {
         setSubmitErrors((err.body as { errors: Record<string, string> }).errors ?? {});
       } else {
@@ -463,7 +467,7 @@ export function Wizard() {
               {save === 'saving' ? 'Saving…' : save === 'saved' ? 'Progress saved automatically' : ''}
             </span>
             {isLast ? (
-              <button className="btn btn-primary" disabled={!canSubmit || submitting} onClick={() => void submit()}>
+              <button className="btn btn-primary" disabled={!canSubmit || submitting} onClick={() => setConfirmOpen(true)}>
                 <Check size={16} /> {submitting ? 'Submitting…' : 'Submit application'}
               </button>
             ) : (
@@ -480,6 +484,28 @@ export function Wizard() {
         loadPreview={() => documentsApi.preview(appId, previewId)}
         loadDownload={() => documentsApi.download(appId, previewId)}
         onClose={() => setPreviewId(null)}
+      />
+    )}
+    {confirmOpen && (
+      <SubmitConfirmModal
+        title="Submit your application"
+        confirmLabel="Submit application"
+        busy={submitting}
+        onConfirm={() => void submit()}
+        onClose={() => setConfirmOpen(false)}
+        declaration={
+          <>
+            <p style={{ marginTop: 0 }}>
+              I, the undersigned applicant, declare that the information and statements provided in this application
+              are <b>complete and accurate</b> to the best of my knowledge.
+            </p>
+            <ul style={{ margin: '0 0 0 2px', paddingLeft: 18, lineHeight: 1.7 }}>
+              <li>I have answered all eligibility and independence declarations truthfully.</li>
+              <li>I understand my application will be assessed against Zemen Bank S.C.’s fit-and-proper criteria.</li>
+              <li>I understand that, once submitted, my application is final and cannot be edited.</li>
+            </ul>
+          </>
+        }
       />
     )}
     </>
