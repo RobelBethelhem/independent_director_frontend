@@ -22,7 +22,14 @@ export interface ReviewCandidate {
   flags: number;
   myScore: number | null;
   mySubmitted: boolean;
+  myStatus: 'none' | 'draft' | 'submitted';
+  myScoredCount: number;
   myShortlist: boolean;
+}
+
+export interface SubmitAllResult {
+  submitted: number;
+  skipped: { id: string; name: string; scored: number; total: number }[];
 }
 
 export interface ReviewDossier {
@@ -52,7 +59,15 @@ export interface ReviewDossier {
     isCurrent?: boolean;
     summary?: string | null;
   }[];
-  boardEntries: { org?: string | null; position?: string | null; type?: string | null; period?: string | null }[];
+  boardEntries: {
+    org?: string | null;
+    position?: string | null;
+    type?: string | null;
+    fromMonth?: string | null;
+    toMonth?: string | null;
+    isCurrent?: boolean | null;
+    period?: string | null;
+  }[];
   references: { name?: string | null; positionOrg?: string | null; relationship?: string | null }[];
   conflictsText: string | null;
   declarations: { itemId: string; answer: 'yes' | 'no'; explanation?: string | null }[];
@@ -93,6 +108,9 @@ export const reviewApi = {
   },
   shortlist() {
     return api<ShortlistEntry[]>('/review/shortlist');
+  },
+  submitAll() {
+    return api<SubmitAllResult>('/review/submit-all', { method: 'POST', body: {} });
   },
   preview(appId: string, docId: string) {
     return api<{ url: string; mimeType: string; filename: string }>(

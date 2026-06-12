@@ -1,6 +1,7 @@
 import { ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Field, Input, Select, Textarea } from '../../components/ui';
 import { CountrySelect } from '../../components/CountrySelect';
+import { SearchSelect } from '../../components/SearchSelect';
 import { Chips, EntryList, SectionBlock, YesNo } from '../../components/wizard-ui';
 import {
   ALL_DECL_IDS,
@@ -11,7 +12,9 @@ import {
   EXPERTISE,
   FIELD_SUGGESTIONS,
   GENDERS,
+  REF_RELATIONSHIPS,
   TITLES,
+  maxDobIso,
   totalExperienceYears,
 } from '../../lib/constants';
 import {
@@ -49,8 +52,14 @@ export function StepPersonal({ form, update, errors = {} }: StepProps) {
           <Field label="Last name" required error={errors.lastName}>
             <Input value={form.lastName} invalid={!!errors.lastName} onChange={(e) => update('lastName', e.target.value)} placeholder="e.g. Bekele" />
           </Field>
-          <Field label="Date of birth">
-            <Input type="date" value={form.dob} onChange={(e) => update('dob', e.target.value)} />
+          <Field label="Date of birth" required hint="You must be at least 18 years old" error={errors.dob}>
+            <Input
+              type="date"
+              value={form.dob}
+              max={maxDobIso()}
+              invalid={!!errors.dob}
+              onChange={(e) => update('dob', e.target.value)}
+            />
           </Field>
           <Field label="Gender">
             <Select value={form.gender} onChange={(e) => update('gender', e.target.value)} options={GENDERS} placeholder="Select" />
@@ -247,19 +256,34 @@ export function StepGovernance({ form, update }: StepProps) {
           blank={blankBoard}
           addLabel="Add board appointment"
           render={(it, _i, set) => (
-            <div className="grid-2">
-              <Field label="Organisation">
-                <Input value={it.org} onChange={(e) => set({ org: e.target.value })} placeholder="Company / entity" />
-              </Field>
-              <Field label="Board position">
-                <Input value={it.position} onChange={(e) => set({ position: e.target.value })} placeholder="e.g. Non-Executive Director" />
-              </Field>
-              <Field label="Type">
-                <Select value={it.type} onChange={(e) => set({ type: e.target.value })} options={BOARD_TYPES} placeholder="Select" />
-              </Field>
-              <Field label="Period">
-                <Input value={it.period} onChange={(e) => set({ period: e.target.value })} placeholder="e.g. 2018 – present" />
-              </Field>
+            <div>
+              <div className="grid-2">
+                <Field label="Organisation">
+                  <Input value={it.org} onChange={(e) => set({ org: e.target.value })} placeholder="Company / entity" />
+                </Field>
+                <Field label="Board position">
+                  <Input value={it.position} onChange={(e) => set({ position: e.target.value })} placeholder="e.g. Non-Executive Director" />
+                </Field>
+                <Field label="Type">
+                  <Select value={it.type} onChange={(e) => set({ type: e.target.value })} options={BOARD_TYPES} placeholder="Select" />
+                </Field>
+                <div className="grid-2">
+                  <Field label="From">
+                    <Input type="month" value={it.fromMonth} onChange={(e) => set({ fromMonth: e.target.value })} />
+                  </Field>
+                  <Field label="To">
+                    <Input type="month" value={it.toMonth} disabled={it.isCurrent} onChange={(e) => set({ toMonth: e.target.value })} />
+                  </Field>
+                </div>
+              </div>
+              <label className="inline-check">
+                <input
+                  type="checkbox"
+                  checked={it.isCurrent}
+                  onChange={(e) => set({ isCurrent: e.target.checked, toMonth: e.target.checked ? '' : it.toMonth })}
+                />
+                I currently serve on this board
+              </label>
             </div>
           )}
         />
@@ -276,9 +300,20 @@ export function StepGovernance({ form, update }: StepProps) {
 }
 
 /* ---------------- Step 5: References & Conflicts ---------------- */
-export function StepReferences({ form, update }: StepProps) {
+export function StepReferences({ form, update, errors = {} }: StepProps) {
+  const errs = Object.values(errors);
   return (
     <div>
+      {errs.length > 0 && (
+        <div className="indep-banner flag" style={{ marginBottom: 18, alignItems: 'flex-start' }}>
+          <TriangleAlert size={18} />
+          <ul style={{ margin: 0, paddingLeft: 18, fontWeight: 500 }}>
+            {errs.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <SectionBlock title="Professional references" first>
         <p className="wiz-sub" style={{ marginTop: -6, marginBottom: 16 }}>
           Provide at least two referees who can attest to your professional standing. Each referee must state
@@ -305,8 +340,15 @@ export function StepReferences({ form, update }: StepProps) {
                 <Input value={it.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+..." />
               </Field>
               <div className="col-span">
-                <Field label="Relationship to you" required hint="How the referee knows you">
-                  <Input value={it.relationship} onChange={(e) => set({ relationship: e.target.value })} placeholder="e.g. Former manager, Board colleague, Academic mentor" />
+                <Field label="Relationship to you" required hint="Pick one, or type your own and choose “Use …”">
+                  <SearchSelect
+                    value={it.relationship}
+                    options={REF_RELATIONSHIPS}
+                    allowCustom
+                    placeholder="Select or type a relationship"
+                    searchPlaceholder="Search or type a custom relationship…"
+                    onChange={(v) => set({ relationship: v })}
+                  />
                 </Field>
               </div>
             </div>

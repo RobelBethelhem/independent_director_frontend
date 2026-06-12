@@ -56,6 +56,7 @@ const SORT_VALUE: Record<string, string> = {
 export function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [items, setItems] = useState<AdminApplicant[]>([]);
+  const [reviewers, setReviewers] = useState<{ id: string; name: string; label: string }[]>([]);
   const [poolTotal, setPoolTotal] = useState(0);
   const [q, setQ] = useState('');
   const [statusLabel, setStatusLabel] = useState('All statuses');
@@ -74,6 +75,7 @@ export function AdminDashboard() {
     ]);
     setStats(s);
     setItems(list.items);
+    setReviewers(list.reviewers);
     setPoolTotal(list.poolTotal);
   }
 
@@ -176,9 +178,18 @@ export function AdminDashboard() {
           <table className="dt">
             <thead>
               <tr>
-                {['Applicant', 'Reference', 'Country', 'Expertise', 'Submitted', 'Score', 'Status', ''].map((h, i) => (
-                  <th key={i}>{h}</th>
+                <th>Applicant</th>
+                <th>Reference</th>
+                <th>Country</th>
+                <th>Submitted</th>
+                {reviewers.map((r, i) => (
+                  <th key={r.id} title={r.name} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    E{i + 1}
+                  </th>
                 ))}
+                <th style={{ textAlign: 'center' }}>Avg</th>
+                <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -209,16 +220,24 @@ export function AdminDashboard() {
                     </span>
                   </td>
                   <td>
-                    <span style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>
-                      {a.expertise.slice(0, 2).join(', ')}
-                      {a.expertise.length > 2 ? ` +${a.expertise.length - 2}` : ''}
-                    </span>
-                  </td>
-                  <td>
                     <span style={{ fontSize: 13 }}>{fmtDate(a.submittedAt)}</span>
                   </td>
-                  <td>
-                    <span className={`scorepill ${scoreClass(a.score)}`}>{a.score == null ? '—' : a.score}</span>
+                  {reviewers.map((r, i) => {
+                    const sv = a.evaluatorScores[i] ?? null;
+                    return (
+                      <td key={r.id} style={{ textAlign: 'center' }}>
+                        {sv == null ? (
+                          <span className="muted">—</span>
+                        ) : (
+                          <span className={`scorepill ${scoreClass(sv)}`} style={{ minWidth: 34, padding: '3px 8px' }}>{sv}</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td style={{ textAlign: 'center' }}>
+                    <span className={`scorepill ${scoreClass(a.score)}`} style={{ fontWeight: 800 }}>
+                      {a.score == null ? '—' : a.score}
+                    </span>
                   </td>
                   <td>
                     <StatusBadge status={a.status} />

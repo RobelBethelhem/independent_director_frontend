@@ -58,6 +58,9 @@ export interface BoardEntry {
   org?: string | null;
   position?: string | null;
   type?: string | null;
+  fromMonth?: string | null;
+  toMonth?: string | null;
+  isCurrent?: boolean | null;
   period?: string | null;
 }
 

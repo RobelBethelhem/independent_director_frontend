@@ -25,7 +25,9 @@ export interface BoardForm {
   org: string;
   position: string;
   type: string;
-  period: string;
+  fromMonth: string;
+  toMonth: string;
+  isCurrent: boolean;
 }
 export interface RefForm {
   name: string;
@@ -71,7 +73,7 @@ export const blankEmp = (): EmpForm => ({
   isCurrent: false,
   summary: '',
 });
-export const blankBoard = (): BoardForm => ({ org: '', position: '', type: '', period: '' });
+export const blankBoard = (): BoardForm => ({ org: '', position: '', type: '', fromMonth: '', toMonth: '', isCurrent: false });
 export const blankRef = (): RefForm => ({ name: '', positionOrg: '', email: '', phone: '', relationship: '' });
 
 const s = (v: string | null | undefined) => v ?? '';
@@ -136,7 +138,9 @@ export function hydrate(app: Application): WizardForm {
       org: s(b.org),
       position: s(b.position),
       type: s(b.type),
-      period: s(b.period),
+      fromMonth: s(b.fromMonth),
+      toMonth: s(b.toMonth),
+      isCurrent: !!b.isCurrent,
     })),
     references: padTo(
       (app.references ?? []).map((r) => ({

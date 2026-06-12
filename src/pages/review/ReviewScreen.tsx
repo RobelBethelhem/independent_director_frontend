@@ -18,7 +18,7 @@ import { DocumentPreview } from '../../components/DocumentPreview';
 import { SubmitConfirmModal } from '../../components/SubmitConfirmModal';
 import { GroupedDocs } from '../../components/GroupedDocs';
 import { CRITERIA, CRITERIA_GROUPS, DECLARATIONS, SCORE_MAX } from '../../lib/constants';
-import { fmtDate } from '../../lib/format';
+import { fmtDate, fmtPeriod } from '../../lib/format';
 
 interface Suggestion {
   value: number;
@@ -356,7 +356,7 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
                         {a.boardEntries.filter((b) => b.org).map((b, i) => (
                           <div key={i} style={{ display: 'contents' }}>
                             <dt>{b.org}</dt>
-                            <dd>{[b.position, b.type, b.period].filter(Boolean).join(' · ') || '—'}</dd>
+                            <dd>{[b.position, b.type, fmtPeriod(b)].filter(Boolean).join(' · ') || '—'}</dd>
                           </div>
                         ))}
                       </dl>

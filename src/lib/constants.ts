@@ -16,6 +16,21 @@ export const COUNTRIES = [
 export const TITLES = ['Dr.', 'Prof.', 'Mr.', 'Ms.', 'Mrs.', 'Ato', 'W/ro'];
 export const GENDERS = ['Female', 'Male'];
 
+/** Known referee relationships (searchable; applicants can also enter a custom one). */
+export const REF_RELATIONSHIPS = [
+  'Current manager / supervisor',
+  'Former manager / supervisor',
+  'Board chair',
+  'Board colleague',
+  'Professional colleague / peer',
+  'Direct report',
+  'Business partner',
+  'Client',
+  'Academic mentor / supervisor',
+  'Mentor',
+  'Industry peer',
+];
+
 /** Degree level (Nomination Procedure §4.1.1 requires at least a Master's). */
 export const DEGREE_OPTIONS = [
   'Doctorate (PhD)',
@@ -206,9 +221,10 @@ export interface DocTypeDef {
   id: string;
   label: string;
   req: boolean;
+  hint?: string;
 }
 
-/** Supporting document slots (ZB.DOC_TYPES). * = required. */
+/** Supporting document slots (ZB.DOC_TYPES). * = required. PDF files only. */
 export const DOC_TYPES: DocTypeDef[] = [
   { id: 'cv', label: 'Curriculum Vitae (CV)', req: true },
   { id: 'edu', label: 'Educational certificates', req: true },
@@ -216,7 +232,12 @@ export const DOC_TYPES: DocTypeDef[] = [
   { id: 'id', label: 'National ID / Passport', req: true },
   { id: 'tin', label: 'Tax Identification (TIN)', req: true },
   { id: 'rec', label: 'Recommendation letters', req: false },
-  { id: 'other', label: 'Other supporting documents', req: false },
+  {
+    id: 'other',
+    label: 'Other supporting documents',
+    req: false,
+    hint: 'Give each file a clear, descriptive name that explains the document — e.g. “Board-Resolution-Awash-2023.pdf”, not “scan001.pdf”.',
+  },
 ];
 
 export const REQUIRED_DOC_TYPES = DOC_TYPES.filter((d) => d.req).map((d) => d.id);
@@ -258,6 +279,49 @@ export const docLabel = (id: string): string => DOC_LABELS[id] ?? id;
 export const scoreClass = (s: number | null): 'hi' | 'mid' | 'lo' | 'none' =>
   s == null ? 'none' : s >= 80 ? 'hi' : s >= 65 ? 'mid' : 'lo';
 
-/** Accepted upload types (mirrors backend ALLOWED_MIME_TYPES) + size limit. */
-export const ACCEPTED_UPLOAD = '.pdf,.png,.jpg,.jpeg,.webp';
+/** Accepted upload types (mirrors backend ALLOWED_MIME_TYPES) + size limit. PDF only. */
+export const ACCEPTED_UPLOAD = '.pdf';
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+/** Email + phone validators shared across the wizard. */
+export const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Minimum applicant age. */
+export const MIN_AGE_YEARS = 18;
+
+/** Latest date of birth allowed (today minus MIN_AGE_YEARS), as YYYY-MM-DD. */
+export function maxDobIso(): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - MIN_AGE_YEARS);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Date-of-birth validation: required + at least MIN_AGE_YEARS old. */
+export function ageError(dob: string, required = true): string | undefined {
+  const v = (dob ?? '').trim();
+  if (!v) return required ? 'Required' : undefined;
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return 'Enter a valid date of birth';
+  const today = new Date();
+  if (d > today) return 'Date of birth cannot be in the future';
+  let age = today.getFullYear() - d.getFullYear();
+  const m = today.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age -= 1;
+  if (age < MIN_AGE_YEARS) return `Applicant must be at least ${MIN_AGE_YEARS} years old.`;
+  return undefined;
+}
+
+/**
+ * Phone validation. Ethiopian numbers must be +251 followed by 7 or 9 then 8
+ * digits (e.g. +251912345678); other countries accept a general + international form.
+ */
+export function phoneError(phone: string, required = true): string | undefined {
+  const p = (phone ?? '').trim();
+  if (!p) return required ? 'Required' : undefined;
+  if (p.startsWith('+251')) {
+    return /^\+251[79]\d{8}$/.test(p)
+      ? undefined
+      : 'Ethiopian numbers must be +251 then 7 or 9 and 8 digits (e.g. +251912345678).';
+  }
+  return /^\+\d{7,15}$/.test(p) ? undefined : 'Enter a valid number starting with + (e.g. +251912345678).';
+}

@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, CheckCircle2, Clock, Download, List, Lock, Scale, Star, TriangleAlert, Users } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock, Download, List, Lock, Scale, Send, Star, TriangleAlert, Users } from 'lucide-react';
 import { reviewApi, type ReviewCandidate, type ReviewOverview, type ShortlistEntry } from '../../lib/review-api';
 import { Avatar, Modal, Stat } from '../../components/ui';
 import { scoreClass } from '../../lib/constants';
 import { fmtDate } from '../../lib/format';
 import { ReviewScreen } from './ReviewScreen';
+import { SubmitAllModal } from './SubmitAllModal';
 
 export function ReviewerConsole() {
   const [overview, setOverview] = useState<ReviewOverview | null>(null);
   const [candidates, setCandidates] = useState<ReviewCandidate[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [shortlistOpen, setShortlistOpen] = useState(false);
+  const [submitAllOpen, setSubmitAllOpen] = useState(false);
+  const [seg, setSeg] = useState<'all' | 'none' | 'draft' | 'submitted'>('all');
 
   async function reload() {
     const ov = await reviewApi.overview();
@@ -76,6 +79,20 @@ export function ReviewerConsole() {
     );
   }
 
+  const counts = {
+    all: candidates.length,
+    none: candidates.filter((c) => c.myStatus === 'none').length,
+    draft: candidates.filter((c) => c.myStatus === 'draft').length,
+    submitted: candidates.filter((c) => c.myStatus === 'submitted').length,
+  };
+  const shown = seg === 'all' ? candidates : candidates.filter((c) => c.myStatus === seg);
+  const SEGMENTS: { key: typeof seg; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'none', label: 'To assess' },
+    { key: 'draft', label: 'In progress' },
+    { key: 'submitted', label: 'Completed' },
+  ];
+
   return (
     <div className="page">
       <div className="wrap" style={{ paddingBottom: 60 }}>
@@ -90,15 +107,45 @@ export function ReviewerConsole() {
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
-          <Stat icon={<Users size={20} />} value={overview.toAssess} label="To assess" accent />
-          <Stat icon={<CheckCircle2 size={20} />} value={overview.reviewedByMe} label="Reviewed by you" />
-          <Stat icon={<Star size={20} />} value={overview.shortlisted} label="Shortlisted" />
-          <Stat icon={<Scale size={20} />} value={overview.criteriaCount} label="Scoring criteria" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
+          <Stat icon={<Clock size={20} />} value={counts.none} label="To assess (not reviewed)" accent />
+          <Stat icon={<Scale size={20} />} value={counts.draft} label="In progress (draft)" />
+          <Stat icon={<CheckCircle2 size={20} />} value={counts.submitted} label="Completed by you" />
+          <Stat icon={<Star size={20} />} value={overview.shortlisted} label="Shortlisted by you" />
         </div>
 
+        {/* Segregation: filter candidates by your review state */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
+          {SEGMENTS.map((s) => (
+            <span
+              key={s.key}
+              className={`chip-toggle${seg === s.key ? ' on' : ''}`}
+              onClick={() => setSeg(s.key)}
+              style={{ cursor: 'pointer' }}
+            >
+              {s.label} · {counts[s.key]}
+            </span>
+          ))}
+          {counts.draft > 0 && (
+            <button className="btn btn-primary btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setSubmitAllOpen(true)}>
+              <Send size={15} /> Submit all in progress ({counts.draft})
+            </button>
+          )}
+        </div>
+
+        {shown.length === 0 ? (
+          <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--ink-3)' }}>
+            {seg === 'none'
+              ? 'You have started or completed all candidates — none left to assess. 🎉'
+              : seg === 'draft'
+                ? 'No candidates in progress. Saved drafts will appear here.'
+                : seg === 'submitted'
+                  ? 'You haven’t completed any assessments yet.'
+                  : 'No candidates available.'}
+          </div>
+        ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(330px,1fr))', gap: 16 }}>
-          {candidates.map((a) => (
+          {shown.map((a) => (
             <div
               key={a.id}
               className="card"
@@ -126,27 +173,43 @@ export function ReviewerConsole() {
               </div>
               <hr className="hr" />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                {a.myScore != null ? (
+                {a.myStatus === 'submitted' ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     <span className={`scorepill ${scoreClass(a.myScore)}`} style={{ fontSize: 14, minWidth: 44, padding: '5px 11px' }}>
                       {a.myScore}
                     </span>
-                    <span style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>Your score</span>
+                    <span style={{ fontSize: 12, color: 'var(--ok)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <CheckCircle2 size={13} /> Submitted
+                    </span>
                   </div>
+                ) : a.myStatus === 'draft' ? (
+                  <span style={{ fontSize: 12.5, color: 'var(--warn)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <Scale size={14} /> Draft saved
+                  </span>
                 ) : (
                   <span style={{ fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 7 }}>
                     <Clock size={14} /> Not yet reviewed
                   </span>
                 )}
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: 'var(--brand-700)' }}>
-                  {a.myShortlist && <Star size={14} />} Review <ArrowRight size={15} />
+                  {a.myShortlist && <Star size={14} />}{' '}
+                  {a.myStatus === 'submitted' ? 'View' : a.myStatus === 'draft' ? 'Continue' : 'Review'}{' '}
+                  <ArrowRight size={15} />
                 </span>
               </div>
             </div>
           ))}
         </div>
+        )}
       </div>
       {shortlistOpen && <ShortlistModal onClose={() => setShortlistOpen(false)} />}
+      {submitAllOpen && (
+        <SubmitAllModal
+          drafts={candidates.filter((c) => c.myStatus === 'draft')}
+          onClose={() => setSubmitAllOpen(false)}
+          onDone={() => void reload()}
+        />
+      )}
     </div>
   );
 }

@@ -120,6 +120,31 @@ export function AdminBoard({
                     </div>
                     {a.score != null && <span className={`scorepill ${scoreClass(a.score)}`}>{a.score}</span>}
                   </div>
+                  {a.evaluatorScores.some((s) => s != null) && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {a.evaluatorScores.map((sv, i) => (
+                        <span
+                          key={i}
+                          title={`Evaluator ${i + 1}`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            padding: '1px 6px',
+                            borderRadius: 6,
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            background: 'var(--surface-2)',
+                            border: '1px solid var(--line-2)',
+                            color: 'var(--ink-3)',
+                          }}
+                        >
+                          E{i + 1}
+                          <b style={{ color: sv == null ? 'var(--ink-4)' : 'var(--ink)' }}>{sv == null ? '—' : sv}</b>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="kc-foot">
                     <span className="ref-mono">{a.reference}</span>
                     {a.flags > 0 && (

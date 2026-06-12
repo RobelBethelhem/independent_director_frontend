@@ -18,6 +18,8 @@ export interface AdminApplicant {
   years: number | null;
   submittedAt: string | null;
   score: number | null;
+  /** Per-evaluator scores aligned to the committee order (null = not yet scored). */
+  evaluatorScores: (number | null)[];
 }
 
 export interface AdminListResponse {
@@ -26,6 +28,7 @@ export interface AdminListResponse {
   page: number;
   pageSize: number;
   poolTotal: number;
+  reviewers: { id: string; name: string; label: string }[];
 }
 
 export interface AdminStats {

@@ -27,12 +27,16 @@ export function StepDocuments({ documents, onUpload, onRemove, onPreview, errors
   async function handleFiles(docType: string, fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
     const files = Array.from(fileList);
-    const tooBig = files.filter((f) => f.size > MAX_UPLOAD_BYTES).map((f) => f.name);
-    const ok = files.filter((f) => f.size <= MAX_UPLOAD_BYTES);
-    setError((e) => ({
-      ...e,
-      [docType]: tooBig.length ? `${tooBig.join(', ')} exceed${tooBig.length > 1 ? '' : 's'} the 10 MB limit.` : '',
-    }));
+    const isPdf = (f: File) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
+    const notPdf = files.filter((f) => !isPdf(f)).map((f) => f.name);
+    const pdfs = files.filter(isPdf);
+    const tooBig = pdfs.filter((f) => f.size > MAX_UPLOAD_BYTES).map((f) => f.name);
+    const ok = pdfs.filter((f) => f.size <= MAX_UPLOAD_BYTES);
+    const msgs = [
+      notPdf.length ? `Only PDF files are accepted — rejected: ${notPdf.join(', ')}.` : '',
+      tooBig.length ? `${tooBig.join(', ')} exceed${tooBig.length > 1 ? '' : 's'} the 10 MB limit.` : '',
+    ].filter(Boolean);
+    setError((e) => ({ ...e, [docType]: msgs.join(' ') }));
 
     // Upload sequentially so each file shows clear progress.
     for (const file of ok) {
@@ -70,7 +74,7 @@ export function StepDocuments({ documents, onUpload, onRemove, onPreview, errors
         </div>
       )}
       <p className="wiz-sub" style={{ marginTop: 0, marginBottom: 22 }}>
-        Upload clear copies in PDF or common image formats (max 10 MB each). You can add{' '}
+        Upload clear copies as <b>PDF files only</b> (max 10 MB each). You can add{' '}
         <b>multiple files per category</b>. Items marked{' '}
         <span className="req" style={{ color: 'var(--brand)', fontWeight: 700 }}>
           *
@@ -104,6 +108,11 @@ export function StepDocuments({ documents, onUpload, onRemove, onPreview, errors
                   )}
                 </label>
               </div>
+              {dt.hint && (
+                <div className="hint" style={{ marginTop: -2, marginBottom: 8 }}>
+                  {dt.hint}
+                </div>
+              )}
 
               <input
                 ref={(el) => {
@@ -187,7 +196,7 @@ export function StepDocuments({ documents, onUpload, onRemove, onPreview, errors
                   <div style={{ fontWeight: 600, fontSize: 13.5 }}>
                     {files.length > 0 ? 'Add more files' : 'Drag & drop or browse'}
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>PDF, JPG, PNG · up to 10 MB each</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>PDF only · up to 10 MB each</div>
                 </div>
                 <button className="btn btn-soft btn-sm" type="button" onClick={() => inputs.current[dt.id]?.click()}>
                   Select files

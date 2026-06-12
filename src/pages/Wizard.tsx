@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, Save } from 'lucide-react';
 import { applicationsApi } from '../lib/applications-api';
 import { documentsApi, type DocumentRecord } from '../lib/documents-api';
+import { authApi } from '../lib/auth-api';
 import { HttpError } from '../lib/api';
 import {
   ALL_DECL_IDS,
@@ -10,9 +11,11 @@ import {
   MIN_EXPERIENCE_YEARS,
   REQUIRED_DOC_TYPES,
   RELEVANT_FIELDS_LABEL,
+  ageError,
   degreeLevel,
   docLabel,
   isRelevantField,
+  phoneError,
   totalExperienceYears,
 } from '../lib/constants';
 import type { Application } from '../lib/types';
@@ -102,6 +105,23 @@ export function Wizard() {
         setReference(app.reference);
         setCertified(app.certified);
         const f = hydrate(app);
+        // Pre-fill contact details from the registered account if not yet entered,
+        // and persist so it's saved with the application.
+        if (!f.email || !f.phone) {
+          try {
+            const me = await authApi.me();
+            if (!f.email && me.email) {
+              f.email = me.email;
+              void applicationsApi.patch(app.id, { email: me.email }).catch(() => undefined);
+            }
+            if (!f.phone && me.phone) {
+              f.phone = me.phone;
+              void applicationsApi.patch(app.id, { phone: me.phone }).catch(() => undefined);
+            }
+          } catch {
+            /* non-fatal */
+          }
+        }
         formRef.current = f;
         setForm(f);
         setDocuments(await documentsApi.list(app.id));
@@ -227,11 +247,27 @@ export function Wizard() {
     if (!f.firstName) e.firstName = 'Required';
     if (!f.middleName) e.middleName = 'Required';
     if (!f.lastName) e.lastName = 'Required';
+    const de = ageError(f.dob);
+    if (de) e.dob = de;
     if (!f.nationality) e.nationality = 'Required';
     if (!f.email) e.email = 'Required';
     else if (!emailRe.test(f.email)) e.email = 'Enter a valid email';
-    if (!f.phone) e.phone = 'Required';
+    const pe = phoneError(f.phone);
+    if (pe) e.phone = pe;
     if (!f.country) e.country = 'Required';
+    return e;
+  }
+
+  /** Format-validate any reference details the applicant has filled in. */
+  function validateReferences(f: WizardForm): Record<string, string> {
+    const e: Record<string, string> = {};
+    const filled = f.references.filter((r) => r.name || r.email || r.phone || r.positionOrg || r.relationship);
+    if (filled.some((r) => r.email && !emailRe.test(r.email))) {
+      e.refEmail = 'One of your references has an invalid email address.';
+    }
+    if (filled.some((r) => r.phone && phoneError(r.phone, false))) {
+      e.refPhone = 'A reference phone number is invalid — Ethiopian numbers must be +251 then 7 or 9 and 8 digits.';
+    }
     return e;
   }
 
@@ -297,6 +333,7 @@ export function Wizard() {
     if (idx === 0) return validatePersonal(f);
     if (idx === 1) return validateEducation(f);
     if (idx === 2) return validateEmployment(f);
+    if (idx === 4) return validateReferences(f);
     if (idx === 5) return validateDocuments();
     return {};
   }
@@ -357,7 +394,7 @@ export function Wizard() {
       body = <StepGovernance form={form} update={update} />;
       break;
     case 'references':
-      body = <StepReferences form={form} update={update} />;
+      body = <StepReferences form={form} update={update} errors={errors} />;
       break;
     case 'documents':
       body = (
