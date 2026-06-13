@@ -45,6 +45,7 @@ export function Auth() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
+  const [devCode, setDevCode] = useState<string | null>(null);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -98,7 +99,8 @@ export function Auth() {
     setBusy(true);
     try {
       if (mode === 'register') {
-        await authApi.register({ email, phone, password, recommendationToken: rec?.recommendToken });
+        const res = await authApi.register({ email, phone, password, recommendationToken: rec?.recommendToken });
+        setDevCode(res.devCode ?? null);
         setStep('otp');
       } else {
         const session = await authApi.login({ email, password });
@@ -159,7 +161,8 @@ export function Auth() {
   async function resend() {
     setFormError(null);
     try {
-      await authApi.resendOtp(email);
+      const res = await authApi.resendOtp(email);
+      if (res.devCode) setDevCode(res.devCode);
       setFormError('A new code has been sent.');
     } catch (err) {
       handleError(err);
@@ -308,8 +311,21 @@ export function Auth() {
               </h2>
               <p className="muted" style={{ fontSize: 14 }}>
                 We sent a {OTP_LENGTH}-digit one-time password to <strong style={{ color: 'var(--ink)' }}>{email}</strong>.
-                Enter it below to continue. (In development the code is printed in the backend console.)
+                Enter it below to continue.
               </p>
+
+              {devCode && (
+                <div
+                  className="indep-banner info"
+                  style={{ marginBottom: 18, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <ShieldCheck size={18} style={{ flex: '0 0 auto' }} />
+                  <span>
+                    Demo environment (email is off) — your code is{' '}
+                    <b className="mono" style={{ fontSize: 16, letterSpacing: '.15em' }}>{devCode}</b>
+                  </span>
+                </div>
+              )}
 
               <div className="otp-row">
                 {otp.map((d, i) => (
