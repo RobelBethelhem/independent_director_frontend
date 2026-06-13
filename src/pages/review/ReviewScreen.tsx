@@ -4,6 +4,7 @@ import {
   BadgeCheck,
   Briefcase,
   Check,
+  FileText,
   Lock,
   MapPin,
   Save,
@@ -32,6 +33,59 @@ function computeScore(values: Record<string, number>): number {
 }
 
 const fullName = (a: ReviewDossier) => [a.title, a.firstName, a.middleName, a.lastName].filter(Boolean).join(' ');
+
+/** Loads the candidate's profile photo as a rounded avatar; falls back to initials. */
+function ReviewerPhoto({
+  appId,
+  photo,
+  initials,
+  seed,
+  onOpen,
+}: {
+  appId: string;
+  photo: ReviewDossier['photo'];
+  initials: string;
+  seed: string;
+  onOpen: (id: string) => void;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (photo) {
+      void reviewApi
+        .preview(appId, photo.id)
+        .then((r) => !cancelled && setUrl(r.url))
+        .catch(() => undefined);
+    } else {
+      setUrl(null);
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [appId, photo?.id]);
+
+  if (photo && url) {
+    return (
+      <img
+        src={url}
+        alt={initials}
+        onClick={() => onOpen(photo.id)}
+        title="View photo"
+        style={{ width: 58, height: 58, borderRadius: 14, objectFit: 'cover', cursor: 'pointer', flex: '0 0 auto' }}
+      />
+    );
+  }
+  return <Avatar seed={seed} initials={initials} size={58} />;
+}
+
+/** Small button that opens an entry's supporting document in the viewer. */
+function DocChip({ doc, label, onOpen }: { doc: { id: string }; label: string; onOpen: (id: string) => void }) {
+  return (
+    <button className="btn btn-soft btn-sm" type="button" style={{ marginTop: 8 }} onClick={() => onOpen(doc.id)}>
+      <FileText size={13} /> {label}
+    </button>
+  );
+}
 
 /** Uppercase divider heading used inside the dossier. */
 function DBlock({ title, children }: { title: string; children: React.ReactNode }) {
@@ -157,7 +211,13 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
           <div>
             <div className="card card-pad">
               <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 4 }}>
-                <Avatar seed={a.reference ?? a.id} initials={`${a.firstName?.[0] ?? ''}${a.lastName?.[0] ?? ''}`} size={58} />
+                <ReviewerPhoto
+                  appId={a.id}
+                  photo={a.photo}
+                  initials={`${a.firstName?.[0] ?? ''}${a.lastName?.[0] ?? ''}`}
+                  seed={a.reference ?? a.id}
+                  onOpen={setPreviewId}
+                />
                 <div style={{ flex: 1 }}>
                   <h1 className="serif" style={{ fontSize: 25 }}>
                     {fullName(a)}
@@ -306,14 +366,19 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
                     {a.education.filter((e) => e.degree || e.institution).length === 0 ? (
                       <span className="muted">—</span>
                     ) : (
-                      <dl className="kv">
-                        {a.education.filter((e) => e.degree || e.institution).map((e, i) => (
-                          <div key={i} style={{ display: 'contents' }}>
-                            <dt>{e.degree || '—'}</dt>
-                            <dd>{[e.field, e.institution, e.year].filter(Boolean).join(' · ') || '—'}</dd>
+                      a.education.filter((e) => e.degree || e.institution).map((e, i) => (
+                        <div key={i} className="entry" style={{ marginBottom: 10 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13.5 }}>{e.degree || '—'}</div>
+                          <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginTop: 2 }}>
+                            {[e.field, e.institution, e.year].filter(Boolean).join(' · ') || '—'}
                           </div>
-                        ))}
-                      </dl>
+                          {e.document ? (
+                            <DocChip doc={e.document} label="View certificate" onOpen={setPreviewId} />
+                          ) : (
+                            <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>No certificate attached</div>
+                          )}
+                        </div>
+                      ))
                     )}
                   </DBlock>
 
@@ -343,6 +408,11 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
                             {[e.fromMonth, e.isCurrent ? 'Present' : e.toMonth].filter(Boolean).join(' – ') || '—'}
                           </div>
                           {e.summary && <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 7, lineHeight: 1.5 }}>{e.summary}</div>}
+                          {e.document ? (
+                            <DocChip doc={e.document} label="View document" onOpen={setPreviewId} />
+                          ) : (
+                            <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>No document attached</div>
+                          )}
                         </div>
                       ))
                     )}

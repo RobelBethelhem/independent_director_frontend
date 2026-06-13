@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, Save } from 'lucide-react';
 import { applicationsApi } from '../lib/applications-api';
-import { documentsApi, type DocumentRecord } from '../lib/documents-api';
+import { documentsApi, type DocLink, type DocumentRecord } from '../lib/documents-api';
 import { authApi } from '../lib/auth-api';
 import { HttpError } from '../lib/api';
 import {
@@ -145,11 +145,25 @@ export function Wizard() {
     return () => clearTimeout(t);
   }, [appId, stepIndex, maxSeen]);
 
-  async function uploadDoc(docType: string, file: File, onProgress: (pct: number) => void) {
+  async function uploadDoc(
+    docType: string,
+    file: File,
+    onProgress: (pct: number) => void,
+    link?: DocLink,
+  ) {
     if (!appId) return;
-    const rec = await documentsApi.upload(appId, docType, file, onProgress);
-    // Multiple files allowed per category — append the new file.
-    setDocuments((prev) => [...prev, rec]);
+    const rec = await documentsApi.upload(appId, docType, file, onProgress, link);
+    setDocuments((prev) => {
+      // Single-file slots (photo / per-entry) replace the prior file; other
+      // categories allow multiple files and just append.
+      let kept = prev;
+      if (docType === 'photo') kept = prev.filter((d) => d.docType !== 'photo');
+      else if (link?.educationEntryId)
+        kept = prev.filter((d) => !(d.docType === 'edu' && d.educationEntryId === link.educationEntryId));
+      else if (link?.employmentEntryId)
+        kept = prev.filter((d) => !(d.docType === 'work' && d.employmentEntryId === link.employmentEntryId));
+      return [...kept, rec];
+    });
   }
   async function removeDoc(docId: string) {
     if (!appId) return;
@@ -158,6 +172,19 @@ export function Wizard() {
   }
   function previewDoc(docId: string) {
     setPreviewId(docId);
+  }
+
+  const photo = documents.find((d) => d.docType === 'photo') ?? null;
+  async function uploadPhoto(file: File, onProgress: (pct: number) => void) {
+    await uploadDoc('photo', file, onProgress);
+  }
+  async function removePhoto() {
+    if (photo) await removeDoc(photo.id);
+  }
+  async function loadPhotoThumb(docId: string) {
+    if (!appId) return '';
+    const { url } = await documentsApi.preview(appId, docId);
+    return url;
   }
 
   async function toggleCertify(v: boolean) {
@@ -282,6 +309,14 @@ export function Wizard() {
     if (started.some((x) => !x.field)) e.field = 'Enter the field of study for each qualification.';
     if (started.some((x) => !x.institution)) e.institution = 'Enter the institution for each qualification.';
 
+    // Each qualification must carry its certificate.
+    const missingCert = started.filter(
+      (x) => x.degree && !documents.some((d) => d.docType === 'edu' && d.educationEntryId === x.id),
+    );
+    if (missingCert.length > 0) {
+      e.educationDocs = `Attach the certificate (PDF) for each qualification — ${missingCert.length} still missing a document.`;
+    }
+
     // Eligibility (§4.1.1): a Master's-or-higher qualification in a relevant field.
     const hasMasters = f.education.some((x) => degreeLevel(x.degree) >= MIN_DEGREE_LEVEL);
     const mastersWithField = f.education.filter(
@@ -310,6 +345,13 @@ export function Wizard() {
     }
     if (started.some((x) => !x.fromMonth || (!x.isCurrent && !x.toMonth))) {
       e.dates = 'Each position needs a start date and an end date (or mark it as current).';
+    }
+    // Each position must carry its supporting document.
+    const missingWork = started.filter(
+      (x) => (x.org || x.role || x.fromMonth) && !documents.some((d) => d.docType === 'work' && d.employmentEntryId === x.id),
+    );
+    if (missingWork.length > 0) {
+      e.employmentDocs = `Attach the supporting document (PDF) for each position — ${missingWork.length} still missing a document.`;
     }
     const years = totalExperienceYears(f.employment);
     if (years < MIN_EXPERIENCE_YEARS) {
@@ -382,13 +424,43 @@ export function Wizard() {
   let body: ReactNode;
   switch (step.id) {
     case 'personal':
-      body = <StepPersonal form={form} update={update} errors={errors} />;
+      body = (
+        <StepPersonal
+          form={form}
+          update={update}
+          errors={errors}
+          photo={photo}
+          onUploadPhoto={uploadPhoto}
+          onRemovePhoto={removePhoto}
+          loadPhotoThumb={loadPhotoThumb}
+        />
+      );
       break;
     case 'education':
-      body = <StepEducation form={form} update={update} errors={errors} />;
+      body = (
+        <StepEducation
+          form={form}
+          update={update}
+          errors={errors}
+          documents={documents}
+          onUpload={uploadDoc}
+          onRemove={removeDoc}
+          onPreview={previewDoc}
+        />
+      );
       break;
     case 'employment':
-      body = <StepEmployment form={form} update={update} errors={errors} />;
+      body = (
+        <StepEmployment
+          form={form}
+          update={update}
+          errors={errors}
+          documents={documents}
+          onUpload={uploadDoc}
+          onRemove={removeDoc}
+          onPreview={previewDoc}
+        />
+      );
       break;
     case 'governance':
       body = <StepGovernance form={form} update={update} />;
@@ -427,6 +499,13 @@ export function Wizard() {
   // Client-side submit gate, mirroring the server's validateForSubmit.
   const validRefs = form.references.filter((r) => r.name && r.email).length >= 2;
   const requiredDocs = REQUIRED_DOC_TYPES.every((t) => documents.some((d) => d.docType === t));
+  const hasPhoto = documents.some((d) => d.docType === 'photo');
+  const eduCertsOk = form.education
+    .filter((x) => x.degree)
+    .every((x) => documents.some((d) => d.docType === 'edu' && d.educationEntryId === x.id));
+  const workDocsOk = form.employment
+    .filter((x) => x.org || x.role || x.fromMonth)
+    .every((x) => documents.some((d) => d.docType === 'work' && d.employmentEntryId === x.id));
   const declAnswered = ALL_DECL_IDS.every((id) => form.declarations[id]);
   const declExplained = ALL_DECL_IDS.every(
     (id) => form.declarations[id] !== 'yes' || (form.declExplain[id] ?? '').trim().length > 0,
@@ -440,6 +519,9 @@ export function Wizard() {
     !!form.country &&
     validRefs &&
     requiredDocs &&
+    hasPhoto &&
+    eduCertsOk &&
+    workDocsOk &&
     declAnswered &&
     declExplained &&
     certified;

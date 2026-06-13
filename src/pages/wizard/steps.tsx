@@ -3,6 +3,8 @@ import { Field, Input, Select, Textarea } from '../../components/ui';
 import { CountrySelect } from '../../components/CountrySelect';
 import { SearchSelect } from '../../components/SearchSelect';
 import { Chips, EntryList, SectionBlock, YesNo } from '../../components/wizard-ui';
+import { EntryDocUpload, PhotoUpload } from '../../components/EntryDocUpload';
+import type { DocLink, DocumentRecord } from '../../lib/documents-api';
 import {
   ALL_DECL_IDS,
   BOARD_TYPES,
@@ -34,11 +36,53 @@ interface StepProps {
   errors?: Record<string, string>;
 }
 
+/** Document upload handlers shared by the education / employment steps. */
+export interface DocStepProps {
+  documents: DocumentRecord[];
+  onUpload: (docType: string, file: File, onProgress: (pct: number) => void, link?: DocLink) => Promise<void>;
+  onRemove: (docId: string) => Promise<void>;
+  onPreview: (docId: string) => void;
+}
+
+/** Profile-photo handlers for the personal step. */
+export interface PhotoStepProps {
+  photo: DocumentRecord | null;
+  onUploadPhoto: (file: File, onProgress: (pct: number) => void) => Promise<void>;
+  onRemovePhoto: () => Promise<void>;
+  loadPhotoThumb: (docId: string) => Promise<string>;
+}
+
 /* ---------------- Step 1: Personal & Contact ---------------- */
-export function StepPersonal({ form, update, errors = {} }: StepProps) {
+export function StepPersonal({
+  form,
+  update,
+  errors = {},
+  photo,
+  onUploadPhoto,
+  onRemovePhoto,
+  loadPhotoThumb,
+}: StepProps & PhotoStepProps) {
   return (
     <div>
-      <SectionBlock title="Personal information" first>
+      <SectionBlock title="Profile photo" first>
+        <p className="wiz-sub" style={{ marginTop: -6, marginBottom: 14 }}>
+          Upload a recent photo of yourself. It is shown to the Nomination &amp; Governance Committee with your
+          application.
+        </p>
+        <PhotoUpload
+          currentDoc={photo}
+          onUpload={onUploadPhoto}
+          onRemove={onRemovePhoto}
+          loadThumb={loadPhotoThumb}
+        />
+        {errors.photo && (
+          <div className="errmsg" style={{ marginTop: 8 }}>
+            {errors.photo}
+          </div>
+        )}
+      </SectionBlock>
+
+      <SectionBlock title="Personal information">
         <div className="grid-3">
           <Field label="Title">
             <Select value={form.title} onChange={(e) => update('title', e.target.value)} options={TITLES} placeholder="Select" />
@@ -96,7 +140,15 @@ export function StepPersonal({ form, update, errors = {} }: StepProps) {
 }
 
 /* ---------------- Step 2: Education & Qualifications ---------------- */
-export function StepEducation({ form, update, errors = {} }: StepProps) {
+export function StepEducation({
+  form,
+  update,
+  errors = {},
+  documents,
+  onUpload,
+  onRemove,
+  onPreview,
+}: StepProps & DocStepProps) {
   const errs = Object.values(errors);
   return (
     <div>
@@ -125,27 +177,44 @@ export function StepEducation({ form, update, errors = {} }: StepProps) {
           blank={blankEdu}
           min={1}
           addLabel="Add qualification"
-          render={(it, _i, set) => (
-            <div className="grid-2">
-              <Field label="Degree level" required>
-                <Select value={it.degree} onChange={(e) => set({ degree: e.target.value })} options={DEGREE_OPTIONS} placeholder="Select degree level" />
-              </Field>
-              <Field label="Field of study" required hint="Must relate to banking, finance, law, economics, business, accounting, auditing or technology (§4.1.1)">
-                <Input
-                  value={it.field}
-                  list="field-suggestions"
-                  onChange={(e) => set({ field: e.target.value })}
-                  placeholder="e.g. Finance, Law, Economics"
-                />
-              </Field>
-              <Field label="Institution">
-                <Input value={it.institution} onChange={(e) => set({ institution: e.target.value })} placeholder="University / College" />
-              </Field>
-              <Field label="Year completed">
-                <Input value={it.year} onChange={(e) => set({ year: e.target.value })} placeholder="YYYY" />
-              </Field>
-            </div>
-          )}
+          render={(it, _i, set) => {
+            const doc = documents.find((d) => d.docType === 'edu' && d.educationEntryId === it.id) ?? null;
+            return (
+              <div>
+                <div className="grid-2">
+                  <Field label="Degree level" required>
+                    <Select value={it.degree} onChange={(e) => set({ degree: e.target.value })} options={DEGREE_OPTIONS} placeholder="Select degree level" />
+                  </Field>
+                  <Field label="Field of study" required hint="Must relate to banking, finance, law, economics, business, accounting, auditing or technology (§4.1.1)">
+                    <Input
+                      value={it.field}
+                      list="field-suggestions"
+                      onChange={(e) => set({ field: e.target.value })}
+                      placeholder="e.g. Finance, Law, Economics"
+                    />
+                  </Field>
+                  <Field label="Institution">
+                    <Input value={it.institution} onChange={(e) => set({ institution: e.target.value })} placeholder="University / College" />
+                  </Field>
+                  <Field label="Year completed">
+                    <Input value={it.year} onChange={(e) => set({ year: e.target.value })} placeholder="YYYY" />
+                  </Field>
+                </div>
+                <Field label="Certificate" required hint="Upload the certificate / award for this qualification (PDF).">
+                  <EntryDocUpload
+                    currentDoc={doc}
+                    label="certificate"
+                    required
+                    onUpload={(file, onProgress) =>
+                      onUpload('edu', file, onProgress, { educationEntryId: it.id })
+                    }
+                    onRemove={() => (doc ? onRemove(doc.id) : Promise.resolve())}
+                    onPreview={onPreview}
+                  />
+                </Field>
+              </div>
+            );
+          }}
         />
       </SectionBlock>
 
@@ -175,7 +244,15 @@ export function StepEducation({ form, update, errors = {} }: StepProps) {
 }
 
 /* ---------------- Step 3: Employment History ---------------- */
-export function StepEmployment({ form, update, errors = {} }: StepProps) {
+export function StepEmployment({
+  form,
+  update,
+  errors = {},
+  documents,
+  onUpload,
+  onRemove,
+  onPreview,
+}: StepProps & DocStepProps) {
   const errs = Object.values(errors);
   const years = totalExperienceYears(form.employment);
   return (
@@ -202,31 +279,46 @@ export function StepEmployment({ form, update, errors = {} }: StepProps) {
           blank={blankEmp}
           min={1}
           addLabel="Add position"
-          render={(it, _i, set) => (
-            <div>
-              <div className="grid-2">
-                <Field label="Organisation" required>
-                  <Input value={it.org} onChange={(e) => set({ org: e.target.value })} placeholder="Company / institution" />
+          render={(it, _i, set) => {
+            const doc = documents.find((d) => d.docType === 'work' && d.employmentEntryId === it.id) ?? null;
+            return (
+              <div>
+                <div className="grid-2">
+                  <Field label="Organisation" required>
+                    <Input value={it.org} onChange={(e) => set({ org: e.target.value })} placeholder="Company / institution" />
+                  </Field>
+                  <Field label="Role / Title" required>
+                    <Input value={it.role} onChange={(e) => set({ role: e.target.value })} placeholder="e.g. Chief Executive Officer" />
+                  </Field>
+                  <Field label="From" required>
+                    <Input type="month" value={it.fromMonth} onChange={(e) => set({ fromMonth: e.target.value })} />
+                  </Field>
+                  <Field label="To" required={!it.isCurrent}>
+                    <Input type="month" value={it.toMonth} disabled={it.isCurrent} onChange={(e) => set({ toMonth: e.target.value })} />
+                  </Field>
+                </div>
+                <label className="inline-check">
+                  <input type="checkbox" checked={it.isCurrent} onChange={(e) => set({ isCurrent: e.target.checked })} />I
+                  currently hold this position
+                </label>
+                <Field label="Key responsibilities (brief)">
+                  <Textarea value={it.summary} rows={2} onChange={(e) => set({ summary: e.target.value })} placeholder="Scope, scale, notable achievements" />
                 </Field>
-                <Field label="Role / Title" required>
-                  <Input value={it.role} onChange={(e) => set({ role: e.target.value })} placeholder="e.g. Chief Executive Officer" />
-                </Field>
-                <Field label="From" required>
-                  <Input type="month" value={it.fromMonth} onChange={(e) => set({ fromMonth: e.target.value })} />
-                </Field>
-                <Field label="To" required={!it.isCurrent}>
-                  <Input type="month" value={it.toMonth} disabled={it.isCurrent} onChange={(e) => set({ toMonth: e.target.value })} />
+                <Field label="Supporting document" required hint="Upload evidence for this position — an experience / service letter or contract (PDF).">
+                  <EntryDocUpload
+                    currentDoc={doc}
+                    label="work document"
+                    required
+                    onUpload={(file, onProgress) =>
+                      onUpload('work', file, onProgress, { employmentEntryId: it.id })
+                    }
+                    onRemove={() => (doc ? onRemove(doc.id) : Promise.resolve())}
+                    onPreview={onPreview}
+                  />
                 </Field>
               </div>
-              <label className="inline-check">
-                <input type="checkbox" checked={it.isCurrent} onChange={(e) => set({ isCurrent: e.target.checked })} />I
-                currently hold this position
-              </label>
-              <Field label="Key responsibilities (brief)">
-                <Textarea value={it.summary} rows={2} onChange={(e) => set({ summary: e.target.value })} placeholder="Scope, scale, notable achievements" />
-              </Field>
-            </div>
-          )}
+            );
+          }}
         />
       </SectionBlock>
     </div>

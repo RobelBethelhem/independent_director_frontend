@@ -224,10 +224,14 @@ export interface DocTypeDef {
   hint?: string;
 }
 
-/** Supporting document slots (ZB.DOC_TYPES). * = required. PDF files only. */
+/**
+ * Standalone supporting document slots shown on the Documents step. * = required.
+ * PDF files only. Educational certificates and work-experience documents are NOT
+ * here — they're uploaded inline against each degree / position. The profile photo
+ * is uploaded on the Personal step.
+ */
 export const DOC_TYPES: DocTypeDef[] = [
   { id: 'cv', label: 'Curriculum Vitae (CV)', req: true },
-  { id: 'edu', label: 'Educational certificates', req: true },
   { id: 'prof', label: 'Professional certificates', req: false },
   { id: 'id', label: 'National ID / Passport', req: true },
   { id: 'tin', label: 'Tax Identification (TIN)', req: true },
@@ -241,6 +245,22 @@ export const DOC_TYPES: DocTypeDef[] = [
 ];
 
 export const REQUIRED_DOC_TYPES = DOC_TYPES.filter((d) => d.req).map((d) => d.id);
+
+/** Full label map for displaying ANY document type, including the inline ones. */
+export const ALL_DOC_LABELS: Record<string, string> = {
+  photo: 'Profile photo',
+  cv: 'Curriculum Vitae (CV)',
+  edu: 'Educational certificate',
+  work: 'Work experience document',
+  prof: 'Professional certificates',
+  id: 'National ID / Passport',
+  tin: 'Tax Identification (TIN)',
+  rec: 'Recommendation letters',
+  other: 'Other supporting documents',
+};
+
+/** Stable display order for grouped document views. */
+export const DOC_DISPLAY_ORDER = ['photo', 'cv', 'edu', 'work', 'prof', 'id', 'tin', 'rec', 'other'];
 
 /**
  * NRC evaluation rubric from the Independent Directors' Nomination Procedure (2026):
@@ -272,8 +292,7 @@ export const CRITERIA_GROUPS: { key: 'document' | 'interview'; label: string }[]
   { key: 'interview', label: 'Interview · 50%' },
 ];
 
-const DOC_LABELS = Object.fromEntries(DOC_TYPES.map((d) => [d.id, d.label]));
-export const docLabel = (id: string): string => DOC_LABELS[id] ?? id;
+export const docLabel = (id: string): string => ALL_DOC_LABELS[id] ?? id;
 
 /** Score → pill class (hi ≥80 / mid ≥65 / lo / none). */
 export const scoreClass = (s: number | null): 'hi' | 'mid' | 'lo' | 'none' =>
@@ -282,6 +301,10 @@ export const scoreClass = (s: number | null): 'hi' | 'mid' | 'lo' | 'none' =>
 /** Accepted upload types (mirrors backend ALLOWED_MIME_TYPES) + size limit. PDF only. */
 export const ACCEPTED_UPLOAD = '.pdf';
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+/** Profile photo uploads accept common image formats (mirrors backend IMAGE_MIME_TYPES). */
+export const ACCEPTED_PHOTO = 'image/png,image/jpeg,image/webp';
+export const PHOTO_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 
 /** Email + phone validators shared across the wizard. */
 export const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

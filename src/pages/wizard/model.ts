@@ -1,8 +1,17 @@
 import type { Application } from '../../lib/types';
 import { ALL_DECL_IDS } from '../../lib/constants';
 
+/** Stable client-generated id (kept across PUT-replace so per-entry documents stay linked). */
+function uid(): string {
+  // crypto.randomUUID is available in all supported browsers; fall back just in case.
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 /** Editable, fully-populated local shapes (no nulls) for the wizard forms. */
 export interface EduForm {
+  id: string;
   degree: string;
   field: string;
   institution: string;
@@ -14,6 +23,7 @@ export interface ProfForm {
   year: string;
 }
 export interface EmpForm {
+  id: string;
   org: string;
   role: string;
   fromMonth: string;
@@ -63,9 +73,10 @@ export interface WizardForm {
   declExplain: Record<string, string>;
 }
 
-export const blankEdu = (): EduForm => ({ degree: '', field: '', institution: '', year: '' });
+export const blankEdu = (): EduForm => ({ id: uid(), degree: '', field: '', institution: '', year: '' });
 export const blankProf = (): ProfForm => ({ name: '', body: '', year: '' });
 export const blankEmp = (): EmpForm => ({
+  id: uid(),
   org: '',
   role: '',
   fromMonth: '',
@@ -109,6 +120,7 @@ export function hydrate(app: Application): WizardForm {
     address: s(app.address),
     education: padTo(
       (app.education ?? []).map((e) => ({
+        id: e.id ?? uid(),
         degree: s(e.degree),
         field: s(e.field),
         institution: s(e.institution),
@@ -124,6 +136,7 @@ export function hydrate(app: Application): WizardForm {
     })),
     employment: padTo(
       (app.employment ?? []).map((e) => ({
+        id: e.id ?? uid(),
         org: s(e.org),
         role: s(e.role),
         fromMonth: s(e.fromMonth),

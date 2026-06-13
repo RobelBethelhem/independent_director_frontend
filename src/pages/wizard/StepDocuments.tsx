@@ -79,7 +79,8 @@ export function StepDocuments({ documents, onUpload, onRemove, onPreview, errors
         <span className="req" style={{ color: 'var(--brand)', fontWeight: 700 }}>
           *
         </span>{' '}
-        are required.
+        are required. Your <b>profile photo</b>, <b>educational certificates</b> and{' '}
+        <b>work-experience documents</b> are collected on the Personal, Education and Employment steps.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>

@@ -49,15 +49,25 @@ export interface ReviewDossier {
   boards: number;
   flags: number;
   expertise: string[];
-  education: { degree?: string | null; field?: string | null; institution?: string | null; year?: string | null }[];
+  photo: { id: string; originalFilename: string } | null;
+  education: {
+    id?: string;
+    degree?: string | null;
+    field?: string | null;
+    institution?: string | null;
+    year?: string | null;
+    document?: { id: string; originalFilename: string } | null;
+  }[];
   professionalQuals: { name?: string | null; body?: string | null; year?: string | null }[];
   employment: {
+    id?: string;
     org?: string | null;
     role?: string | null;
     fromMonth?: string | null;
     toMonth?: string | null;
     isCurrent?: boolean;
     summary?: string | null;
+    document?: { id: string; originalFilename: string } | null;
   }[];
   boardEntries: {
     org?: string | null;

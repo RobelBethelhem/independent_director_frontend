@@ -1,5 +1,5 @@
 import { Eye, FileText } from 'lucide-react';
-import { DOC_TYPES } from '../lib/constants';
+import { DOC_DISPLAY_ORDER, docLabel } from '../lib/constants';
 
 interface Doc {
   id: string;
@@ -8,7 +8,8 @@ interface Doc {
 }
 
 /** Shows uploaded documents grouped under their category (CV, Educational
- *  certificates, …) so it's clear which file belongs to which category. */
+ *  certificate, Work experience document, …) so it's clear which file belongs to
+ *  which category. Renders any document type present, in a stable order. */
 export function GroupedDocs({
   documents,
   onPreview,
@@ -19,15 +20,21 @@ export function GroupedDocs({
   emptyText?: string;
 }) {
   if (!documents.length) return <span className="muted">{emptyText}</span>;
+  // Distinct doc types present, ordered by the canonical display order (unknown last).
+  const present = Array.from(new Set(documents.map((d) => d.docType))).sort((a, b) => {
+    const ia = DOC_DISPLAY_ORDER.indexOf(a);
+    const ib = DOC_DISPLAY_ORDER.indexOf(b);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {DOC_TYPES.map((dt) => {
-        const files = documents.filter((d) => d.docType === dt.id);
+      {present.map((docType) => {
+        const files = documents.filter((d) => d.docType === docType);
         if (!files.length) return null;
         return (
-          <div key={dt.id}>
+          <div key={docType}>
             <div className="docgroup-h">
-              {dt.label}
+              {docLabel(docType)}
               <span className="docgroup-count">{files.length}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -40,7 +47,7 @@ export function GroupedDocs({
                     <div style={{ fontWeight: 600, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {f.originalFilename}
                     </div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{dt.label}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{docLabel(docType)}</div>
                   </div>
                   <button className="iconbtn" style={{ width: 32, height: 32 }} title="Preview" onClick={() => onPreview(f.id)}>
                     <Eye size={15} />

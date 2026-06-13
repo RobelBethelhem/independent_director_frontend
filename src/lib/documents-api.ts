@@ -8,6 +8,14 @@ export interface DocumentRecord {
   sizeBytes: string;
   scannedClean: boolean;
   uploadedAt: string;
+  educationEntryId?: string | null;
+  employmentEntryId?: string | null;
+}
+
+/** Optional soft link tying a file to a specific education / employment entry. */
+export interface DocLink {
+  educationEntryId?: string;
+  employmentEntryId?: string;
 }
 
 interface PresignResult {
@@ -46,6 +54,7 @@ export const documentsApi = {
     docType: string,
     file: File,
     onProgress?: (percent: number) => void,
+    link?: DocLink,
   ): Promise<DocumentRecord> {
     const { uploadUrl, storageKey } = await api<PresignResult>(
       `/applications/${appId}/documents/presign`,
@@ -65,6 +74,8 @@ export const documentsApi = {
         originalFilename: file.name,
         mimeType: file.type,
         sizeBytes: file.size,
+        ...(link?.educationEntryId ? { educationEntryId: link.educationEntryId } : {}),
+        ...(link?.employmentEntryId ? { employmentEntryId: link.employmentEntryId } : {}),
       },
     });
   },
