@@ -66,7 +66,9 @@ export function Auth() {
       setSessionNotice(
         reason === 'idle'
           ? 'You were signed out after 5 minutes of inactivity.'
-          : 'Your session reached its 15-minute limit — please sign in again.',
+          : reason === 'absolute'
+            ? 'Your session reached its 15-minute limit — please sign in again.'
+            : 'You were signed out because this account signed in on another device.',
       );
       setMode('login');
     }

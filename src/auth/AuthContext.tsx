@@ -69,6 +69,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const interval = window.setInterval(() => {
       if (!userRef.current) return;
+      // The backend now ties every access token to a server-side session id
+      // (see JwtStrategy), so a token can go dead mid-lifetime — e.g. this
+      // account was just signed in on another device and confirmed the
+      // takeover there. When that happens, api.ts's silent-refresh-on-401
+      // already fails and clears the stored tokens; this just catches the
+      // React state up to that within one tick instead of leaving the UI
+      // looking signed-in while every request quietly 401s.
+      if (!tokenStore.access) {
+        sessionStorage.setItem(SESSION_END_REASON_KEY, 'superseded');
+        setUser(null);
+        return;
+      }
       const now = Date.now();
       const lastActivity = sessionActivity.get();
       const startedAt = tokenStore.sessionStartedAt;
