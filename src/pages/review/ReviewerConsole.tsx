@@ -52,11 +52,23 @@ export function ReviewerConsole() {
               <Lock size={24} />
             </div>
             <div style={{ flex: 1 }}>
-              <h3 style={{ fontSize: 17, marginBottom: 5 }}>Review opens after the application window closes</h3>
-              <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.72)', lineHeight: 1.55, maxWidth: 560 }}>
-                In line with the URS, reviewers may access applications only after the submission period ends or
-                once all applications are in. The window closes {fmtDate(overview.closeAt)}.
-              </p>
+              {overview.ended ? (
+                <>
+                  <h3 style={{ fontSize: 17, marginBottom: 5 }}>The review period has ended</h3>
+                  <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.72)', lineHeight: 1.55, maxWidth: 560 }}>
+                    Reviewers may no longer score or submit assessments — the deadline was{' '}
+                    {fmtDate(overview.reviewCloseAt)}. Contact the Company Secretariat if you need it extended.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 style={{ fontSize: 17, marginBottom: 5 }}>Review opens after the application window closes</h3>
+                  <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.72)', lineHeight: 1.55, maxWidth: 560 }}>
+                    In line with the URS, reviewers may access applications only after the submission period ends or
+                    once all applications are in. The window closes {fmtDate(overview.closeAt)}.
+                  </p>
+                </>
+              )}
             </div>
           </div>
           <div

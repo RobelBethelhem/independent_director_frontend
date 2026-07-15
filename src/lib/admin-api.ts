@@ -256,7 +256,18 @@ export const adminApi = {
     );
   },
   cycle() {
-    return api<{ id: string; title: string; submissionCloseAt: string; reviewUnlocked: boolean }>('/admin/cycle');
+    return api<{
+      id: string;
+      title: string;
+      submissionCloseAt: string;
+      reviewCloseAt: string | null;
+      reviewUnlocked: boolean;
+      reviewActive: boolean;
+      statusLocked: boolean;
+    }>('/admin/cycle');
+  },
+  updateCycleSettings(id: string, body: { submissionCloseAt?: string; reviewCloseAt?: string | null }) {
+    return api<{ id: string }>(`/admin/cycle/${id}/settings`, { method: 'PATCH', body });
   },
   detail(id: string) {
     return api<AdminDetail>(`/admin/applications/${id}`);
@@ -285,4 +296,26 @@ export const adminApi = {
       body: {},
     });
   },
+  pendingNotifications() {
+    return api<PendingNotification[]>('/admin/notifications/pending');
+  },
+  sendBulkNotifications() {
+    return api<BulkNotifyResult>('/admin/notifications/send-bulk', { method: 'POST', body: {} });
+  },
 };
+
+export interface PendingNotification {
+  id: string;
+  reference: string | null;
+  name: string;
+  status: ApplicationStatus;
+  statusLabel: string;
+  email: string | null;
+  phone: string | null;
+}
+
+export interface BulkNotifyResult {
+  sent: number;
+  total: number;
+  failed: { id: string; name: string; reason: string }[];
+}

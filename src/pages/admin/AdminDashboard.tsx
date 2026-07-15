@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BarChart3,
+  CalendarClock,
   ChevronRight,
   Clock,
   Columns3,
@@ -20,13 +21,14 @@ import {
 import { adminApi, type AdminApplicant, type AdminStats } from '../../lib/admin-api';
 import { Avatar, Select, Stat } from '../../components/ui';
 import { StatusBadge } from '../../components/StatusBadge';
-import { fmtDate } from '../../lib/format';
+import { fmtDate, fmtDateTime } from '../../lib/format';
 import { scoreClass } from '../../lib/constants';
 import { ApplicantDrawer } from './ApplicantDrawer';
 import { AdminBoard } from './AdminBoard';
 import { ReviewersModal } from './ReviewersModal';
 import { AuditorsModal } from './AuditorsModal';
 import { RecommendersModal } from './RecommendersModal';
+import { ReviewSettingsModal } from './ReviewSettingsModal';
 
 const STATUS_OPTIONS = [
   'All statuses',
@@ -67,16 +69,22 @@ export function AdminDashboard() {
   const [reviewersOpen, setReviewersOpen] = useState(false);
   const [auditorsOpen, setAuditorsOpen] = useState(false);
   const [recommendersOpen, setRecommendersOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [statusLocked, setStatusLocked] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState<string | null>(null);
 
   async function reload() {
-    const [s, list] = await Promise.all([
+    const [s, list, cycle] = await Promise.all([
       adminApi.stats(),
       adminApi.list({ query: q, status: STATUS_VALUE[statusLabel], sort: SORT_VALUE[sortLabel] }),
+      adminApi.cycle(),
     ]);
     setStats(s);
     setItems(list.items);
     setReviewers(list.reviewers);
     setPoolTotal(list.poolTotal);
+    setStatusLocked(cycle.statusLocked);
+    setLockedUntil(cycle.reviewCloseAt);
   }
 
   /** Refresh everything after a status change (stats + table + Kanban board). */
@@ -108,6 +116,9 @@ export function AdminDashboard() {
             </button>
             <button className="btn btn-ghost" onClick={() => setRecommendersOpen(true)}>
               <Send size={17} /> Recommenders
+            </button>
+            <button className="btn btn-ghost" onClick={() => setSettingsOpen(true)}>
+              <CalendarClock size={17} /> Review settings
             </button>
             <Link className="btn btn-ghost" to="/audit">
               <ScrollText size={17} /> Audit trail
@@ -171,8 +182,28 @@ export function AdminDashboard() {
           </div>
         </div>
 
+        {statusLocked && (
+          <div className="indep-banner flag" style={{ marginBottom: 16, alignItems: 'center' }}>
+            <CalendarClock size={17} style={{ flex: '0 0 auto' }} />
+            <span>
+              Status changes are locked while review is active
+              {lockedUntil ? <> until <b>{fmtDateTime(lockedUntil)}</b></> : ''} —{' '}
+              <button type="button" className="btn btn-link" style={{ padding: 0, fontSize: 'inherit' }} onClick={() => setSettingsOpen(true)}>
+                manage in Review settings
+              </button>
+              .
+            </span>
+          </div>
+        )}
+
         {view === 'board' ? (
-          <AdminBoard query={q} refreshKey={refreshKey} onOpen={(id) => setSelectedId(id)} onChanged={refresh} />
+          <AdminBoard
+            query={q}
+            refreshKey={refreshKey}
+            statusLocked={statusLocked}
+            onOpen={(id) => setSelectedId(id)}
+            onChanged={refresh}
+          />
         ) : (
         <div className="table-card">
           <table className="dt">
@@ -259,11 +290,18 @@ export function AdminDashboard() {
       </div>
 
       {selectedId && (
-        <ApplicantDrawer id={selectedId} onClose={() => setSelectedId(null)} onChanged={refresh} />
+        <ApplicantDrawer
+          id={selectedId}
+          statusLocked={statusLocked}
+          lockedUntil={lockedUntil}
+          onClose={() => setSelectedId(null)}
+          onChanged={refresh}
+        />
       )}
       {reviewersOpen && <ReviewersModal onClose={() => setReviewersOpen(false)} />}
       {auditorsOpen && <AuditorsModal onClose={() => setAuditorsOpen(false)} />}
       {recommendersOpen && <RecommendersModal onClose={() => setRecommendersOpen(false)} />}
+      {settingsOpen && <ReviewSettingsModal onClose={() => setSettingsOpen(false)} onChanged={refresh} />}
     </div>
   );
 }

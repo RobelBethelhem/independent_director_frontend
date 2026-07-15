@@ -5,6 +5,7 @@ import {
   Clock,
   Download,
   Eye,
+  Lock,
   Mail,
   MessageSquare,
   RefreshCw,
@@ -18,8 +19,9 @@ import { Avatar, Field, Input, Modal, Select, Textarea } from '../../components/
 import { StatusBadge } from '../../components/StatusBadge';
 import { GroupedDocs } from '../../components/GroupedDocs';
 import { DocumentPreview } from '../../components/DocumentPreview';
+import { HttpError } from '../../lib/api';
 import { CRITERIA, DECLARATIONS } from '../../lib/constants';
-import { fmtDate } from '../../lib/format';
+import { fmtDate, fmtDateTime } from '../../lib/format';
 import { scoreClass } from '../../lib/constants';
 
 const STATUSES: { value: string; label: string }[] = [
@@ -33,11 +35,24 @@ const STATUSES: { value: string; label: string }[] = [
 
 const fullName = (a: AdminDetail) => [a.title, a.firstName, a.middleName, a.lastName].filter(Boolean).join(' ');
 
-export function ApplicantDrawer({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
+export function ApplicantDrawer({
+  id,
+  statusLocked = false,
+  lockedUntil = null,
+  onClose,
+  onChanged,
+}: {
+  id: string;
+  statusLocked?: boolean;
+  lockedUntil?: string | null;
+  onClose: () => void;
+  onChanged: () => void;
+}) {
   const [a, setA] = useState<AdminDetail | null>(null);
   const [tab, setTab] = useState<'profile' | 'documents' | 'declarations' | 'evaluation' | 'activity'>('profile');
   const [msgOpen, setMsgOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [previewDocId, setPreviewDocId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -101,8 +116,16 @@ export function ApplicantDrawer({ id, onClose, onChanged }: { id: string; onClos
                 <Download size={17} /> Download all
               </button>
               <div style={{ flex: 1 }} />
-              <button className="btn btn-dark" onClick={() => setStatusOpen(true)}>
-                <RefreshCw size={17} /> Update status
+              <button
+                className="btn btn-dark"
+                disabled={statusLocked}
+                title={statusLocked ? `Locked while review is active${lockedUntil ? ` (until ${fmtDateTime(lockedUntil)})` : ''}` : undefined}
+                onClick={() => {
+                  setStatusError(null);
+                  setStatusOpen(true);
+                }}
+              >
+                {statusLocked ? <Lock size={17} /> : <RefreshCw size={17} />} Update status
               </button>
             </div>
 
@@ -110,12 +133,18 @@ export function ApplicantDrawer({ id, onClose, onChanged }: { id: string; onClos
             {statusOpen && (
               <StatusModal
                 a={a}
+                error={statusError}
                 onClose={() => setStatusOpen(false)}
                 onSaved={async (status) => {
-                  await adminApi.updateStatus(a.id, status);
-                  setA({ ...a, status: status as AdminDetail['status'] });
-                  setStatusOpen(false);
-                  onChanged();
+                  setStatusError(null);
+                  try {
+                    await adminApi.updateStatus(a.id, status);
+                    setA({ ...a, status: status as AdminDetail['status'] });
+                    setStatusOpen(false);
+                    onChanged();
+                  } catch (err) {
+                    setStatusError(err instanceof HttpError ? err.messages.join(' · ') : 'Could not update status.');
+                  }
                 }}
               />
             )}
@@ -473,7 +502,17 @@ function MessageModal({ a, onClose }: { a: AdminDetail; onClose: () => void }) {
   );
 }
 
-function StatusModal({ a, onClose, onSaved }: { a: AdminDetail; onClose: () => void; onSaved: (status: string) => void }) {
+function StatusModal({
+  a,
+  error,
+  onClose,
+  onSaved,
+}: {
+  a: AdminDetail;
+  error?: string | null;
+  onClose: () => void;
+  onSaved: (status: string) => void;
+}) {
   const [st, setSt] = useState<string>(a.status);
   return (
     <Modal
@@ -496,8 +535,10 @@ function StatusModal({ a, onClose, onSaved }: { a: AdminDetail; onClose: () => v
         <b style={{ color: 'var(--ink)' }}>
           {[a.firstName, a.middleName, a.lastName].filter(Boolean).join(' ')}
         </b>
-        . The applicant can see this in their tracker.
+        . The applicant can see this in their tracker; email/SMS notification is queued for the next bulk send
+        from Review settings.
       </p>
+      {error && <div className="errmsg" style={{ marginBottom: 12 }}>{error}</div>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {STATUSES.map((o) => (
           <label

@@ -3,6 +3,10 @@ import { api } from './api';
 export interface ReviewOverview {
   unlocked: boolean;
   closeAt: string;
+  /** Admin-set review deadline, if any — null means no deadline configured. */
+  reviewCloseAt: string | null;
+  /** True when reviewCloseAt has passed (distinct from "not yet opened"). */
+  ended: boolean;
   received: number;
   toAssess: number;
   reviewedByMe: number;

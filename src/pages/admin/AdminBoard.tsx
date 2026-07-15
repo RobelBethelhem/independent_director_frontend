@@ -1,8 +1,9 @@
 import { useEffect, useState, type DragEvent } from 'react';
-import { Flag } from 'lucide-react';
+import { Flag, Lock } from 'lucide-react';
 import { adminApi, type AdminApplicant } from '../../lib/admin-api';
 import { Avatar, Modal } from '../../components/ui';
 import { StatusBadge } from '../../components/StatusBadge';
+import { HttpError } from '../../lib/api';
 import { scoreClass } from '../../lib/constants';
 
 /** Board columns in pipeline order (draft is excluded — admins never see drafts). */
@@ -28,11 +29,13 @@ interface PendingMove {
 export function AdminBoard({
   query,
   refreshKey,
+  statusLocked = false,
   onOpen,
   onChanged,
 }: {
   query: string;
   refreshKey: number;
+  statusLocked?: boolean;
   onOpen: (id: string) => void;
   onChanged: () => void;
 }) {
@@ -41,6 +44,7 @@ export function AdminBoard({
   const [overStatus, setOverStatus] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingMove | null>(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void adminApi.board().then(setItems);
@@ -56,6 +60,10 @@ export function AdminBoard({
   function onDrop(e: DragEvent, toStatus: string) {
     e.preventDefault();
     setOverStatus(null);
+    if (statusLocked) {
+      setDragId(null);
+      return;
+    }
     const id = e.dataTransfer.getData('text/plain') || dragId;
     const app = (items ?? []).find((x) => x.id === id);
     setDragId(null);
@@ -67,10 +75,13 @@ export function AdminBoard({
   async function confirmMove() {
     if (!pending) return;
     setSaving(true);
+    setError(null);
     try {
       await adminApi.updateStatus(pending.id, pending.to);
       setPending(null);
       onChanged(); // refreshes stats + bumps refreshKey (re-fetches this board)
+    } catch (err) {
+      setError(err instanceof HttpError ? err.messages.join(' · ') : 'Could not change status.');
     } finally {
       setSaving(false);
     }
@@ -86,22 +97,25 @@ export function AdminBoard({
             className={`kcol${overStatus === col.status ? ' drag-over' : ''}`}
             onDragOver={(e) => {
               e.preventDefault();
-              e.dataTransfer.dropEffect = 'move';
-              if (overStatus !== col.status) setOverStatus(col.status);
+              e.dataTransfer.dropEffect = statusLocked ? 'none' : 'move';
+              if (!statusLocked && overStatus !== col.status) setOverStatus(col.status);
             }}
             onDrop={(e) => onDrop(e, col.status)}
           >
             <div className="kcol-head">
               <StatusBadge status={col.status} />
               <span className="kcol-count">{cards.length}</span>
+              {statusLocked && <Lock size={12} style={{ color: 'var(--ink-3)', marginLeft: 'auto' }} />}
             </div>
             <div className="kcol-body">
               {cards.map((a) => (
                 <div
                   key={a.id}
                   className={`kcard${dragId === a.id ? ' dragging' : ''}`}
-                  draggable
+                  draggable={!statusLocked}
+                  title={statusLocked ? 'Status changes are locked while review is active' : undefined}
                   onDragStart={(e) => {
+                    if (statusLocked) return;
                     setDragId(a.id);
                     e.dataTransfer.effectAllowed = 'move';
                     e.dataTransfer.setData('text/plain', a.id);
@@ -183,8 +197,10 @@ export function AdminBoard({
             <b style={{ color: 'var(--ink)' }}>{LABELS[pending.to] ?? pending.to}</b>?
           </p>
           <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>
-            The applicant can see this in their tracker and will be notified.
+            The applicant can see this in their tracker. Email/SMS notification is queued — send it (along with
+            any other pending ones) from Review settings when you’re ready.
           </p>
+          {error && <div className="errmsg" style={{ marginTop: 10 }}>{error}</div>}
         </Modal>
       )}
     </div>
