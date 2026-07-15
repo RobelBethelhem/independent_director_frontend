@@ -11,12 +11,29 @@ export interface Me {
   phoneVerified: boolean;
   status: 'active' | 'disabled';
   mustChangePassword?: boolean;
+  twoFactorEnabled?: boolean;
+  twoFactorAvailable?: boolean;
 }
 
 export interface AuthSession {
   accessToken: string;
   refreshToken: string;
   user: { id: string; email: string; role: UserRole; emailVerified: boolean; mustChangePassword?: boolean };
+}
+
+/** Returned mid-login instead of a session when 2FA and/or a single-sign-on
+ *  conflict confirmation is still needed — mirrors backend's LoginChallenge. */
+export interface LoginChallenge {
+  challengeToken: string;
+  twoFactorRequired?: true;
+  sessionConflict?: true;
+  existingSession?: { ip: string | null; userAgent: string | null; at: string };
+}
+
+export type LoginResult = AuthSession | LoginChallenge;
+
+export function isLoginChallenge(result: LoginResult): result is LoginChallenge {
+  return 'challengeToken' in result;
 }
 
 export type ApplicationStatus =

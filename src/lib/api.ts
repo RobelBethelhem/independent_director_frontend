@@ -9,6 +9,8 @@ export const API_BASE =
 
 const ACCESS_KEY = 'zb.accessToken';
 const REFRESH_KEY = 'zb.refreshToken';
+const SESSION_STARTED_KEY = 'zb.sessionStartedAt';
+const LAST_ACTIVITY_KEY = 'zb.lastActivityAt';
 
 export const tokenStore = {
   get access() {
@@ -17,13 +19,44 @@ export const tokenStore = {
   get refresh() {
     return localStorage.getItem(REFRESH_KEY);
   },
-  set(session: Pick<AuthSession, 'accessToken' | 'refreshToken'>) {
+  /** Wall-clock time (ms) the current session began — set only on a genuine
+   *  fresh login, never touched by a silent token refresh. Mirrors the
+   *  backend's `sessionStartedAt` and is the basis for the 15-minute
+   *  absolute session cap enforced client-side (see AuthContext). */
+  get sessionStartedAt(): number | null {
+    const v = localStorage.getItem(SESSION_STARTED_KEY);
+    return v ? Number(v) : null;
+  },
+  /**
+   * @param opts.fresh Pass true only when this session was just established
+   *   (login / 2FA verify / session-conflict confirm) — resets the absolute
+   *   session clock. A silent /auth/refresh call must omit this.
+   */
+  set(session: Pick<AuthSession, 'accessToken' | 'refreshToken'>, opts?: { fresh?: boolean }) {
     localStorage.setItem(ACCESS_KEY, session.accessToken);
     localStorage.setItem(REFRESH_KEY, session.refreshToken);
+    if (opts?.fresh) {
+      localStorage.setItem(SESSION_STARTED_KEY, String(Date.now()));
+      localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+    }
   },
   clear() {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(SESSION_STARTED_KEY);
+    localStorage.removeItem(LAST_ACTIVITY_KEY);
+  },
+};
+
+/** Last user-interaction timestamp, shared across tabs via localStorage —
+ *  the basis for the 5-minute inactivity timeout (see AuthContext). */
+export const sessionActivity = {
+  get(): number | null {
+    const v = localStorage.getItem(LAST_ACTIVITY_KEY);
+    return v ? Number(v) : null;
+  },
+  touch() {
+    localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
   },
 };
 

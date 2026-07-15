@@ -8,6 +8,7 @@ import { Wizard } from './pages/Wizard';
 import { Success } from './pages/Success';
 import { Tracking } from './pages/Tracking';
 import { ChangePassword } from './pages/ChangePassword';
+import { Security } from './pages/Security';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminReports } from './pages/admin/AdminReports';
 import { AdvancedSearch } from './pages/admin/AdvancedSearch';
@@ -39,6 +40,9 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route element={<ProtectedRoute ignorePasswordChange />}>
           <Route path="/change-password" element={<ChangePassword />} />
+        </Route>
+        <Route element={<ProtectedRoute roles={['admin', 'reviewer', 'auditor', 'recommender']} />}>
+          <Route path="/security" element={<Security />} />
         </Route>
         <Route element={<ProtectedRoute roles={['applicant']} />}>
           <Route path="/apply" element={<Wizard />} />

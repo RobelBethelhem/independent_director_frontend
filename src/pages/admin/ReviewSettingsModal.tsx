@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarClock, Lock, LockOpen, Send, Unlock } from 'lucide-react';
+import { CalendarClock, Lock, Send, TriangleAlert, Unlock } from 'lucide-react';
 import { adminApi, type PendingNotification } from '../../lib/admin-api';
 import { Field, Input, Modal } from '../../components/ui';
 import { HttpError } from '../../lib/api';
@@ -11,7 +11,7 @@ interface CycleInfo {
   title: string;
   submissionCloseAt: string;
   reviewCloseAt: string | null;
-  reviewUnlocked: boolean;
+  acceptingApplications: boolean;
   reviewActive: boolean;
   statusLocked: boolean;
 }
@@ -46,36 +46,25 @@ export function ReviewSettingsModal({ onClose, onChanged }: { onClose: () => voi
     void load();
   }, []);
 
+  const bothSet = !!submissionCloseAt && !!reviewCloseAt;
+  const orderOk = !bothSet || new Date(reviewCloseAt).getTime() > new Date(submissionCloseAt).getTime();
+  const canSave = bothSet && orderOk;
+
   async function save() {
-    if (!cycle) return;
+    if (!cycle || !canSave) return;
     setSaving(true);
     setError(null);
     setSaved(false);
     try {
       await adminApi.updateCycleSettings(cycle.id, {
-        submissionCloseAt: submissionCloseAt ? new Date(submissionCloseAt).toISOString() : undefined,
-        reviewCloseAt: reviewCloseAt ? new Date(reviewCloseAt).toISOString() : null,
+        submissionCloseAt: new Date(submissionCloseAt).toISOString(),
+        reviewCloseAt: new Date(reviewCloseAt).toISOString(),
       });
       await load();
       setSaved(true);
       onChanged();
     } catch (err) {
       setError(err instanceof HttpError ? err.messages.join(' · ') : 'Could not save settings.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function unlockNow() {
-    if (!cycle) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await adminApi.openReview(cycle.id);
-      await load();
-      onChanged();
-    } catch (err) {
-      setError(err instanceof HttpError ? err.messages.join(' · ') : 'Could not open the review window.');
     } finally {
       setSaving(false);
     }
@@ -95,38 +84,39 @@ export function ReviewSettingsModal({ onClose, onChanged }: { onClose: () => voi
             <div className="indep-banner info" style={{ alignItems: 'flex-start', marginBottom: 18 }}>
               <CalendarClock size={18} style={{ flex: '0 0 auto', marginTop: 1 }} />
               <div style={{ fontSize: 13 }}>
-                {!cycle.reviewUnlocked && Date.now() < new Date(cycle.submissionCloseAt).getTime() ? (
-                  <>Applications are still open — the review console opens automatically once the window closes, or you can open it now below.</>
+                {cycle.acceptingApplications ? (
+                  <>
+                    Applications are still open until <b>{fmtDateTime(cycle.submissionCloseAt)}</b> — reviewers
+                    can’t score yet, and status changes are locked, until then.
+                  </>
                 ) : cycle.statusLocked ? (
                   <>
-                    Review is <b>active</b> — application status changes are locked until{' '}
-                    <b>{fmtDateTime(cycle.reviewCloseAt)}</b>. Extend the date below if reviewers need more time.
+                    Applications closed — review is <b>active</b>. Reviewers can score now; application status
+                    changes stay locked until <b>{fmtDateTime(cycle.reviewCloseAt)}</b>. Extend the date below if
+                    reviewers need more time.
                   </>
-                ) : cycle.reviewCloseAt ? (
-                  <>Review period ended {fmtDateTime(cycle.reviewCloseAt)} — status changes are unlocked. Set a new date to reopen review.</>
                 ) : (
-                  <>Review is open with no end date set — reviewers can score indefinitely, and status changes are never locked.</>
+                  <>
+                    Review period ended {fmtDateTime(cycle.reviewCloseAt)} — status changes are unlocked, reviewers
+                    can no longer score. Set a later date below to reopen review.
+                  </>
                 )}
               </div>
             </div>
 
             <div className="grid-2" style={{ marginBottom: 8 }}>
-              <Field label="Applications close" hint="Reviewers gain access automatically after this date">
+              <Field label="Applications close" required hint="Reviewers gain access automatically once this passes">
                 <Input type="datetime-local" value={submissionCloseAt} onChange={(e) => setSubmissionCloseAt(e.target.value)} />
               </Field>
-              <Field label="Review closes" hint="Leave blank for no deadline — reviewers can score indefinitely">
+              <Field label="Review closes" required hint="Must be after the applications-close date, above">
                 <Input type="datetime-local" value={reviewCloseAt} onChange={(e) => setReviewCloseAt(e.target.value)} />
               </Field>
             </div>
-            {reviewCloseAt && (
-              <button
-                type="button"
-                className="btn btn-link"
-                style={{ padding: '2px 0', marginBottom: 12, fontSize: 12.5 }}
-                onClick={() => setReviewCloseAt('')}
-              >
-                Clear review-close date (reopen indefinitely)
-              </button>
+            {bothSet && !orderOk && (
+              <div className="indep-banner flag" style={{ marginBottom: 12, alignItems: 'center' }}>
+                <TriangleAlert size={16} />
+                <span>The review-close date must be after the applications-close date.</span>
+              </div>
             )}
 
             {error && <div className="errmsg" style={{ marginBottom: 10 }}>{error}</div>}
@@ -136,15 +126,10 @@ export function ReviewSettingsModal({ onClose, onChanged }: { onClose: () => voi
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 10, marginBottom: 26 }}>
-              <button className="btn btn-primary" disabled={saving} onClick={() => void save()}>
+            <div style={{ marginBottom: 26 }}>
+              <button className="btn btn-primary" disabled={saving || !canSave} onClick={() => void save()}>
                 {saving ? 'Saving…' : 'Save dates'}
               </button>
-              {!cycle.reviewUnlocked && (
-                <button className="btn btn-ghost" disabled={saving} onClick={() => void unlockNow()}>
-                  <LockOpen size={16} /> Open review now
-                </button>
-              )}
             </div>
 
             <div

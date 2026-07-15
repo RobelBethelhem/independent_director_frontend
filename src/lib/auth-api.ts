@@ -1,5 +1,6 @@
 import { api, tokenStore } from './api';
-import type { AuthSession, Me } from './types';
+import type { AuthSession, LoginResult, Me } from './types';
+import { isLoginChallenge } from './types';
 
 /** Auth endpoints from BACKEND.md → /auth/*. */
 export const authApi = {
@@ -17,7 +18,7 @@ export const authApi = {
       body: input,
       auth: false,
     });
-    tokenStore.set(session);
+    tokenStore.set(session, { fresh: true });
     return session;
   },
 
@@ -29,14 +30,49 @@ export const authApi = {
     });
   },
 
-  async login(input: { email: string; password: string }): Promise<AuthSession> {
-    const session = await api<AuthSession>('/auth/login', {
+  /** Password step. Returns a real session immediately, or a challenge
+   *  (2FA and/or single-sign-on conflict) that must be resolved via
+   *  verifyTotpLogin / confirmSessionAndLogin below. */
+  async login(input: { email: string; password: string }): Promise<LoginResult> {
+    const result = await api<LoginResult>('/auth/login', {
       method: 'POST',
       body: input,
       auth: false,
     });
-    tokenStore.set(session);
+    if (!isLoginChallenge(result)) tokenStore.set(result, { fresh: true });
+    return result;
+  },
+
+  async verifyTotpLogin(input: { challengeToken: string; code: string }): Promise<LoginResult> {
+    const result = await api<LoginResult>('/auth/2fa/verify-login', {
+      method: 'POST',
+      body: input,
+      auth: false,
+    });
+    if (!isLoginChallenge(result)) tokenStore.set(result, { fresh: true });
+    return result;
+  },
+
+  async confirmSessionAndLogin(challengeToken: string): Promise<AuthSession> {
+    const session = await api<AuthSession>('/auth/login/confirm-session', {
+      method: 'POST',
+      body: { challengeToken },
+      auth: false,
+    });
+    tokenStore.set(session, { fresh: true });
     return session;
+  },
+
+  setupTotp() {
+    return api<{ secret: string; qrDataUri: string }>('/auth/2fa/setup', { method: 'POST' });
+  },
+
+  confirmTotpSetup(code: string) {
+    return api<{ ok: true }>('/auth/2fa/confirm', { method: 'POST', body: { code } });
+  },
+
+  disableTotp(input: { password: string; code: string }) {
+    return api<{ ok: true }>('/auth/2fa/disable', { method: 'POST', body: input });
   },
 
   forgotPassword(email: string) {

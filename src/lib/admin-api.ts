@@ -261,12 +261,12 @@ export const adminApi = {
       title: string;
       submissionCloseAt: string;
       reviewCloseAt: string | null;
-      reviewUnlocked: boolean;
+      acceptingApplications: boolean;
       reviewActive: boolean;
       statusLocked: boolean;
     }>('/admin/cycle');
   },
-  updateCycleSettings(id: string, body: { submissionCloseAt?: string; reviewCloseAt?: string | null }) {
+  updateCycleSettings(id: string, body: { submissionCloseAt?: string; reviewCloseAt?: string }) {
     return api<{ id: string }>(`/admin/cycle/${id}/settings`, { method: 'PATCH', body });
   },
   detail(id: string) {
@@ -289,12 +289,6 @@ export const adminApi = {
     return api<{ url: string; mimeType: string; filename: string }>(
       `/admin/applications/${id}/documents/${docId}/preview`,
     );
-  },
-  openReview(cycleId: string) {
-    return api<{ id: string; reviewUnlocked: boolean }>(`/admin/cycle/${cycleId}/open-review`, {
-      method: 'POST',
-      body: {},
-    });
   },
   pendingNotifications() {
     return api<PendingNotification[]>('/admin/notifications/pending');
