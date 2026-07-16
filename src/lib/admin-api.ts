@@ -199,6 +199,15 @@ function searchQs(f: SearchFilters): string {
   return qs.toString();
 }
 
+export interface BlockedIpRow {
+  id: string;
+  ip: string;
+  reason: string;
+  note: string | null;
+  createdBy: string | null;
+  createdAt: string;
+}
+
 export const adminApi = {
   list(params: { query?: string; status?: string; sort?: string; page?: number }) {
     const qs = new URLSearchParams();
@@ -295,6 +304,15 @@ export const adminApi = {
   },
   sendBulkNotifications() {
     return api<BulkNotifyResult>('/admin/notifications/send-bulk', { method: 'POST', body: {} });
+  },
+  blockedIps() {
+    return api<BlockedIpRow[]>('/admin/blocked-ips');
+  },
+  addBlockedIp(input: { ip: string; note?: string }) {
+    return api<BlockedIpRow>('/admin/blocked-ips', { method: 'POST', body: input });
+  },
+  removeBlockedIp(id: string) {
+    return api<{ ok: true }>(`/admin/blocked-ips/${id}`, { method: 'DELETE' });
   },
 };
 

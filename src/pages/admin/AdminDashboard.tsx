@@ -13,6 +13,7 @@ import {
   ScrollText,
   Search,
   Send,
+  ShieldBan,
   ShieldCheck,
   Star,
   Users,
@@ -29,6 +30,7 @@ import { ReviewersModal } from './ReviewersModal';
 import { AuditorsModal } from './AuditorsModal';
 import { RecommendersModal } from './RecommendersModal';
 import { ReviewSettingsModal } from './ReviewSettingsModal';
+import { BlockedIpsModal } from './BlockedIpsModal';
 
 const STATUS_OPTIONS = [
   'All statuses',
@@ -69,6 +71,7 @@ export function AdminDashboard() {
   const [reviewersOpen, setReviewersOpen] = useState(false);
   const [auditorsOpen, setAuditorsOpen] = useState(false);
   const [recommendersOpen, setRecommendersOpen] = useState(false);
+  const [blockedOpen, setBlockedOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [statusLocked, setStatusLocked] = useState(false);
   const [lockedUntil, setLockedUntil] = useState<string | null>(null);
@@ -123,6 +126,9 @@ export function AdminDashboard() {
             <Link className="btn btn-ghost" to="/audit">
               <ScrollText size={17} /> Audit trail
             </Link>
+            <button className="btn btn-ghost" onClick={() => setBlockedOpen(true)}>
+              <ShieldBan size={17} /> Blocked IPs
+            </button>
             <Link className="btn btn-ghost" to="/admin/search">
               <Search size={17} /> Advanced search
             </Link>
@@ -301,6 +307,7 @@ export function AdminDashboard() {
       {reviewersOpen && <ReviewersModal onClose={() => setReviewersOpen(false)} />}
       {auditorsOpen && <AuditorsModal onClose={() => setAuditorsOpen(false)} />}
       {recommendersOpen && <RecommendersModal onClose={() => setRecommendersOpen(false)} />}
+      {blockedOpen && <BlockedIpsModal onClose={() => setBlockedOpen(false)} />}
       {settingsOpen && <ReviewSettingsModal onClose={() => setSettingsOpen(false)} onChanged={refresh} />}
     </div>
   );
