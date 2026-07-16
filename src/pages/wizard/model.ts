@@ -1,12 +1,37 @@
 import type { Application } from '../../lib/types';
 import { ALL_DECL_IDS } from '../../lib/constants';
 
-/** Stable client-generated id (kept across PUT-replace so per-entry documents stay linked). */
+/**
+ * Stable client-generated id (kept across PUT-replace so per-entry documents
+ * stay linked). MUST be a real RFC 4122 UUID — the API validates it with
+ * @IsUUID() and rejects the whole save with a 400 otherwise.
+ *
+ * Note `crypto.randomUUID()` is SECURE-CONTEXT ONLY: it's undefined on a
+ * plain-HTTP origin (e.g. the on-prem http://10.1.2.136:8080 deployment), even
+ * though it works on HTTPS and on localhost. `crypto.getRandomValues()` IS
+ * available on insecure origins, so build the v4 UUID from it rather than
+ * falling back to a non-UUID string.
+ */
 function uid(): string {
-  // crypto.randomUUID is available in all supported browsers; fall back just in case.
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const c: Crypto | undefined = typeof crypto !== 'undefined' ? crypto : undefined;
+  if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+
+  const b = new Uint8Array(16);
+  if (c && typeof c.getRandomValues === 'function') {
+    c.getRandomValues(b);
+  } else {
+    for (let i = 0; i < 16; i += 1) b[i] = Math.floor(Math.random() * 256);
+  }
+  b[6] = (b[6] & 0x0f) | 0x40; // version 4
+  b[8] = (b[8] & 0x3f) | 0x80; // variant 10xx
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0'));
+  return [
+    h.slice(0, 4).join(''),
+    h.slice(4, 6).join(''),
+    h.slice(6, 8).join(''),
+    h.slice(8, 10).join(''),
+    h.slice(10, 16).join(''),
+  ].join('-');
 }
 
 /** Editable, fully-populated local shapes (no nulls) for the wizard forms. */

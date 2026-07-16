@@ -4,6 +4,7 @@ import { recommendationsApi, type MyRecommendation } from '../../lib/recommendat
 import { HttpError } from '../../lib/api';
 import { Field, Input, Textarea } from '../../components/ui';
 import { fmtDate } from '../../lib/format';
+import { copyText } from '../../lib/clipboard';
 
 const STATUS_COLOR: Record<string, { bg: string; fg: string }> = {
   Invited: { bg: 'var(--paper-2)', fg: 'var(--ink-3)' },
@@ -66,7 +67,8 @@ export function RecommenderConsole() {
   }
 
   function copyLink(link: string) {
-    void navigator.clipboard?.writeText(`${window.location.origin}${link}`).then(() => {
+    void copyText(`${window.location.origin}${link}`).then((ok) => {
+      if (!ok) return;
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     });

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
+import { copyText } from '../lib/clipboard';
 
 /**
  * Shows the one-time temporary password for a freshly created staff account so
@@ -18,7 +19,8 @@ export function CredentialBox({
   const [copied, setCopied] = useState(false);
 
   function copy() {
-    void navigator.clipboard?.writeText(tempPassword).then(() => {
+    void copyText(tempPassword).then((ok) => {
+      if (!ok) return;
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     });
