@@ -5,7 +5,7 @@ import { isLoginChallenge } from './types';
 /** Auth endpoints from BACKEND.md → /auth/*. */
 export const authApi = {
   register(input: { email: string; phone: string; password: string; recommendationToken?: string }) {
-    return api<{ email: string; otpRequired: true; devCode?: string }>('/auth/register', {
+    return api<{ email: string; otpRequired: true; otpLength: number; devCode?: string }>('/auth/register', {
       method: 'POST',
       body: input,
       auth: false,
@@ -23,7 +23,7 @@ export const authApi = {
   },
 
   resendOtp(email: string) {
-    return api<{ ok: true; devCode?: string }>('/auth/resend-otp', {
+    return api<{ ok: true; otpLength: number; devCode?: string }>('/auth/resend-otp', {
       method: 'POST',
       body: { email },
       auth: false,

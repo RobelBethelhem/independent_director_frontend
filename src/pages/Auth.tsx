@@ -27,7 +27,9 @@ interface RecommendState {
   recommenderName?: string;
 }
 
-const OTP_LENGTH = 4;
+// Default until the server reports its configured OTP length (it can be 4 or 6
+// depending on OTP_LENGTH); the verify UI then renders exactly that many boxes.
+const DEFAULT_OTP_LENGTH = 6;
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function Auth() {
@@ -45,7 +47,8 @@ export function Auth() {
   const [email, setEmail] = useState(rec?.recommendEmail ?? '');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
+  const [otpLength, setOtpLength] = useState(DEFAULT_OTP_LENGTH);
+  const [otp, setOtp] = useState<string[]>(Array(DEFAULT_OTP_LENGTH).fill(''));
   const [devCode, setDevCode] = useState<string | null>(null);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -139,6 +142,8 @@ export function Auth() {
     try {
       if (mode === 'register') {
         const res = await authApi.register({ email, phone, password, recommendationToken: rec?.recommendToken });
+        setOtpLength(res.otpLength);
+        setOtp(Array(res.otpLength).fill(''));
         setDevCode(res.devCode ?? null);
         setStep('otp');
       } else {
@@ -196,8 +201,8 @@ export function Auth() {
     e.preventDefault();
     setFormError(null);
     const code = otp.join('');
-    if (code.length !== OTP_LENGTH) {
-      setFormError('Enter the 4-digit code');
+    if (code.length !== otpLength) {
+      setFormError(`Enter the ${otpLength}-digit code`);
       return;
     }
     setBusy(true);
@@ -227,7 +232,7 @@ export function Auth() {
       next[i] = digit;
       return next;
     });
-    if (digit && i < OTP_LENGTH - 1) otpRefs.current[i + 1]?.focus();
+    if (digit && i < otpLength - 1) otpRefs.current[i + 1]?.focus();
   }
 
   function onOtpKeyDown(i: number, e: KeyboardEvent<HTMLInputElement>) {
@@ -240,6 +245,8 @@ export function Auth() {
     setFormError(null);
     try {
       const res = await authApi.resendOtp(email);
+      setOtpLength(res.otpLength);
+      setOtp(Array(res.otpLength).fill(''));
       if (res.devCode) setDevCode(res.devCode);
       setFormError('A new code has been sent.');
     } catch (err) {
@@ -394,7 +401,7 @@ export function Auth() {
                 Verify your account
               </h2>
               <p className="muted" style={{ fontSize: 14 }}>
-                We sent a {OTP_LENGTH}-digit one-time password to <strong style={{ color: 'var(--ink)' }}>{email}</strong>.
+                We sent a {otpLength}-digit one-time password to <strong style={{ color: 'var(--ink)' }}>{email}</strong>.
                 Enter it below to continue.
               </p>
 
