@@ -7,6 +7,7 @@ import { HttpError } from '../lib/api';
 import { isLoginChallenge, type LoginResult } from '../lib/types';
 import { PASSWORD_HINT, validatePassword } from '../lib/password';
 import { homeFor } from '../lib/routes';
+import { phoneError } from '../lib/constants';
 import { Field, Input, Logo } from '../components/ui';
 
 type Mode = 'register' | 'login';
@@ -101,7 +102,10 @@ export function Auth() {
     const next: Record<string, string> = {};
     if (!email.trim()) next.email = 'Required';
     else if (!emailRe.test(email)) next.email = 'Enter a valid email';
-    if (mode === 'register' && !phone.trim()) next.phone = 'Required';
+    if (mode === 'register') {
+      const phoneErr = phoneError(phone);
+      if (phoneErr) next.phone = phoneErr;
+    }
     if (!password) next.password = 'Required';
     else if (mode === 'register') {
       const pwErr = validatePassword(password);
@@ -318,14 +322,17 @@ export function Auth() {
                 </Field>
 
                 {mode === 'register' && (
-                  <Field label="Mobile" required error={errors.phone}>
+                  <Field label="Mobile" required error={errors.phone} hint="With country code, e.g. +251912345678">
                     <Input
                       type="tel"
+                      inputMode="tel"
                       value={phone}
                       invalid={!!errors.phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+251…"
+                      // Only allow a leading + and digits — no letters/separators.
+                      onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, '').replace(/(?!^)\+/g, ''))}
+                      placeholder="+251912345678"
                       autoComplete="tel"
+                      maxLength={16}
                     />
                   </Field>
                 )}
