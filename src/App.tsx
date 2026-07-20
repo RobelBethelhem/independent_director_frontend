@@ -9,6 +9,7 @@ import { Success } from './pages/Success';
 import { Tracking } from './pages/Tracking';
 import { ChangePassword } from './pages/ChangePassword';
 import { Security } from './pages/Security';
+import { ADMIN_PATH, ADMIN_REPORTS_PATH, ADMIN_SEARCH_PATH } from './lib/routes';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminReports } from './pages/admin/AdminReports';
 import { AdvancedSearch } from './pages/admin/AdvancedSearch';
@@ -50,9 +51,9 @@ export default function App() {
           <Route path="/track" element={<Tracking />} />
         </Route>
         <Route element={<ProtectedRoute roles={['admin']} />}>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/reports" element={<AdminReports />} />
-          <Route path="/admin/search" element={<AdvancedSearch />} />
+          <Route path={ADMIN_PATH} element={<AdminDashboard />} />
+          <Route path={ADMIN_REPORTS_PATH} element={<AdminReports />} />
+          <Route path={ADMIN_SEARCH_PATH} element={<AdvancedSearch />} />
         </Route>
         <Route element={<ProtectedRoute roles={['reviewer']} />}>
           <Route path="/review" element={<ReviewerConsole />} />

@@ -6,6 +6,7 @@ import { Field, Input, Select } from '../../components/ui';
 import { StatusBadge } from '../../components/StatusBadge';
 import { ApplicantDrawer } from './ApplicantDrawer';
 import { COUNTRIES, EXPERTISE } from '../../lib/constants';
+import { ADMIN_PATH } from '../../lib/routes';
 
 const STATUSES = [
   { v: 'submitted', l: 'Submitted' },
@@ -96,7 +97,7 @@ export function AdvancedSearch() {
       <div className="wrap" style={{ paddingBottom: 60 }}>
         <div className="page-head">
           <div>
-            <Link to="/admin" className="btn btn-link" style={{ padding: 0, marginBottom: 8 }}>
+            <Link to={ADMIN_PATH} className="btn btn-link" style={{ padding: 0, marginBottom: 8 }}>
               <ArrowLeft size={15} /> Back to dashboard
             </Link>
             <div className="eyebrow">Administrator · Advanced search</div>

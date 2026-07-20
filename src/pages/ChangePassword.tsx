@@ -5,17 +5,8 @@ import { authApi } from '../lib/auth-api';
 import { useAuth } from '../auth/AuthContext';
 import { HttpError } from '../lib/api';
 import { Field, Input } from '../components/ui';
-
-const homeFor = (role: string) =>
-  role === 'admin'
-    ? '/admin'
-    : role === 'reviewer'
-      ? '/review'
-      : role === 'auditor'
-        ? '/audit'
-        : role === 'recommender'
-          ? '/recommend'
-          : '/apply';
+import { PASSWORD_HINT, validatePassword } from '../lib/password';
+import { homeFor } from '../lib/routes';
 
 export function ChangePassword() {
   const navigate = useNavigate();
@@ -31,8 +22,9 @@ export function ChangePassword() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (next.length < 8) {
-      setError('Your new password must be at least 8 characters.');
+    const pwErr = validatePassword(next);
+    if (pwErr) {
+      setError(pwErr);
       return;
     }
     if (next !== confirm) {
@@ -75,7 +67,7 @@ export function ChangePassword() {
               placeholder="Enter the password you signed in with"
             />
           </Field>
-          <Field label="New password" required hint="At least 8 characters">
+          <Field label="New password" required hint={PASSWORD_HINT}>
             <Input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="Choose a new password" />
           </Field>
           <Field label="Confirm new password" required>

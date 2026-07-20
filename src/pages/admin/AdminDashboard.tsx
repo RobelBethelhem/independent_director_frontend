@@ -24,6 +24,7 @@ import { Avatar, Select, Stat } from '../../components/ui';
 import { StatusBadge } from '../../components/StatusBadge';
 import { fmtDate, fmtDateTime } from '../../lib/format';
 import { scoreClass } from '../../lib/constants';
+import { ADMIN_REPORTS_PATH, ADMIN_SEARCH_PATH } from '../../lib/routes';
 import { ApplicantDrawer } from './ApplicantDrawer';
 import { AdminBoard } from './AdminBoard';
 import { ReviewersModal } from './ReviewersModal';
@@ -129,10 +130,10 @@ export function AdminDashboard() {
             <button className="btn btn-ghost" onClick={() => setBlockedOpen(true)}>
               <ShieldBan size={17} /> Blocked IPs
             </button>
-            <Link className="btn btn-ghost" to="/admin/search">
+            <Link className="btn btn-ghost" to={ADMIN_SEARCH_PATH}>
               <Search size={17} /> Advanced search
             </Link>
-            <Link className="btn btn-dark" to="/admin/reports">
+            <Link className="btn btn-dark" to={ADMIN_REPORTS_PATH}>
               <BarChart3 size={17} /> Reports
             </Link>
           </div>

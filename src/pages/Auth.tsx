@@ -5,21 +5,12 @@ import { useAuth, SESSION_END_REASON_KEY } from '../auth/AuthContext';
 import { authApi } from '../lib/auth-api';
 import { HttpError } from '../lib/api';
 import { isLoginChallenge, type LoginResult } from '../lib/types';
+import { PASSWORD_HINT, validatePassword } from '../lib/password';
+import { homeFor } from '../lib/routes';
 import { Field, Input, Logo } from '../components/ui';
 
 type Mode = 'register' | 'login';
 type Step = 'form' | 'otp' | 'twofactor' | 'conflict';
-
-const homeFor = (role: string) =>
-  role === 'admin'
-    ? '/admin'
-    : role === 'reviewer'
-      ? '/review'
-      : role === 'auditor'
-        ? '/audit'
-        : role === 'recommender'
-          ? '/recommend'
-          : '/apply';
 
 interface RecommendState {
   recommendToken?: string;
@@ -112,7 +103,10 @@ export function Auth() {
     else if (!emailRe.test(email)) next.email = 'Enter a valid email';
     if (mode === 'register' && !phone.trim()) next.phone = 'Required';
     if (!password) next.password = 'Required';
-    else if (mode === 'register' && password.length < 8) next.password = 'At least 8 characters';
+    else if (mode === 'register') {
+      const pwErr = validatePassword(password);
+      if (pwErr) next.password = pwErr;
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -339,7 +333,7 @@ export function Auth() {
                 <Field
                   label="Password"
                   required
-                  hint={mode === 'register' ? 'Min 8 characters' : undefined}
+                  hint={mode === 'register' ? PASSWORD_HINT : undefined}
                   error={errors.password}
                 >
                   <Input

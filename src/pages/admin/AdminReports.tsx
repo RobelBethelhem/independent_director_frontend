@@ -8,6 +8,7 @@ import { Stat } from '../../components/ui';
 import { ChartCard, BarList, VBars, Donut, Funnel, PALETTE } from '../../components/charts';
 import { CRITERIA, DECLARATIONS } from '../../lib/constants';
 import { fmtDate } from '../../lib/format';
+import { ADMIN_PATH } from '../../lib/routes';
 
 const CRIT_LABEL: Record<string, string> = Object.fromEntries(CRITERIA.map((c) => [c.id, c.label]));
 const DECL_LABEL: Record<string, string> = Object.fromEntries(
@@ -53,7 +54,7 @@ export function AdminReports() {
       <div className="wrap" style={{ paddingBottom: 60 }}>
         <div className="page-head">
           <div>
-            <Link to="/admin" className="btn btn-link" style={{ padding: 0, marginBottom: 8 }}>
+            <Link to={ADMIN_PATH} className="btn btn-link" style={{ padding: 0, marginBottom: 8 }}>
               <ArrowLeft size={15} /> Back to dashboard
             </Link>
             <div className="eyebrow">Administrator · Analytics</div>
