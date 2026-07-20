@@ -1,6 +1,24 @@
-import { api, tokenStore } from './api';
+import { api, tokenStore, HttpError } from './api';
 import type { AuthSession, LoginResult, Me } from './types';
 import { isLoginChallenge } from './types';
+
+/**
+ * After a login response hands us tokens, immediately prove them against the
+ * server with GET /auth/me. This defeats "MFA/login bypass via response
+ * manipulation": if an attacker tampers with the login/2FA response to inject
+ * fake tokens, those tokens aren't server-signed, so /auth/me returns 401 and
+ * we reject the login instead of showing an authenticated UI. (Every protected
+ * API call already rejects forged tokens server-side; this closes the visual
+ * bypass too.)
+ */
+async function validateSession(): Promise<void> {
+  try {
+    await api<Me>('/auth/me');
+  } catch (err) {
+    tokenStore.clear();
+    throw new HttpError(401, { statusCode: 401, message: 'Could not verify your session. Please sign in again.' });
+  }
+}
 
 /** Auth endpoints from BACKEND.md → /auth/*. */
 export const authApi = {
@@ -19,6 +37,7 @@ export const authApi = {
       auth: false,
     });
     tokenStore.set(session, { fresh: true });
+    await validateSession();
     return session;
   },
 
@@ -39,7 +58,10 @@ export const authApi = {
       body: input,
       auth: false,
     });
-    if (!isLoginChallenge(result)) tokenStore.set(result, { fresh: true });
+    if (!isLoginChallenge(result)) {
+      tokenStore.set(result, { fresh: true });
+      await validateSession();
+    }
     return result;
   },
 
@@ -49,7 +71,10 @@ export const authApi = {
       body: input,
       auth: false,
     });
-    if (!isLoginChallenge(result)) tokenStore.set(result, { fresh: true });
+    if (!isLoginChallenge(result)) {
+      tokenStore.set(result, { fresh: true });
+      await validateSession();
+    }
     return result;
   },
 
@@ -60,6 +85,7 @@ export const authApi = {
       auth: false,
     });
     tokenStore.set(session, { fresh: true });
+    await validateSession();
     return session;
   },
 
