@@ -53,8 +53,8 @@ export function BlockedIpsModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Blocked IP addresses" width={680} onClose={onClose}>
       <p className="muted" style={{ marginTop: 0, marginBottom: 18, fontSize: 13 }}>
-        Addresses here are denied at sign-in. IPs are added automatically after repeated page-inspection
-        attempts, or manually below. Removing one restores its access immediately.
+        Addresses added here are denied at sign-in — use it to block an IP you see abusing the portal in
+        the audit trail. Removing one restores its access immediately.
       </p>
 
       <div style={{ marginBottom: 22 }}>
