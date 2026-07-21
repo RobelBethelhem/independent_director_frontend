@@ -564,6 +564,33 @@ export function Wizard() {
       </aside>
 
       <div className="wiz-main" ref={mainRef}>
+        {/* Mobile/tablet stepper — replaces the hidden left rail on small screens
+            so applicants can see progress and jump between steps. */}
+        <div className="wiz-msteps">
+          <div className="wiz-msteps-top">
+            <span className="wiz-prog">Step {stepIndex + 1} of {STEPS.length}</span>
+            <span className="wiz-mcurrent">{step.label}</span>
+          </div>
+          <div className="wiz-bar">
+            <i style={{ width: `${pct}%` }} />
+          </div>
+          <div className="wiz-mchips">
+            {STEPS.map((s, i) => {
+              const done = i < stepIndex || (i <= maxSeen && i !== stepIndex);
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`wiz-mchip${i === stepIndex ? ' active' : ''}${done ? ' done' : ''}`}
+                  onClick={() => goTo(i)}
+                  aria-label={`Step ${i + 1}: ${s.label}`}
+                >
+                  {done ? <Check size={12} strokeWidth={3} /> : i + 1}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <div className="wiz-main-inner fade-up" key={stepIndex}>
           <div className="eyebrow">Independent Director Application</div>
           <h2 className="wiz-h" style={{ marginTop: 8 }}>
