@@ -66,8 +66,8 @@ export function StepPersonal({
     <div>
       <SectionBlock title="Profile photo" first>
         <p className="wiz-sub" style={{ marginTop: -6, marginBottom: 14 }}>
-          Upload a recent photo of yourself. It is shown to the Nomination &amp; Governance Committee with your
-          application.
+          Upload a recent photo of yourself <span className="req">*</span>. It is shown to the Nomination &amp;
+          Governance Committee with your application.
         </p>
         <PhotoUpload
           currentDoc={photo}
@@ -193,7 +193,7 @@ export function StepEducation({
                       placeholder="e.g. Finance, Law, Economics"
                     />
                   </Field>
-                  <Field label="Institution">
+                  <Field label="Institution" required>
                     <Input value={it.institution} onChange={(e) => set({ institution: e.target.value })} placeholder="University / College" />
                   </Field>
                   <Field label="Year completed">
@@ -219,24 +219,46 @@ export function StepEducation({
       </SectionBlock>
 
       <SectionBlock title="Professional Qualifications & Certificates">
+        <p className="wiz-sub" style={{ marginTop: -6, marginBottom: 16 }}>
+          Optional. If you add a professional qualification, attach its certificate — the same as the education
+          section above.
+        </p>
         <EntryList
           items={form.professionalQuals}
           onChange={(v) => update('professionalQuals', v)}
           blank={blankProf}
           addLabel="Add professional qualification"
-          render={(it, _i, set) => (
-            <div className="grid-3">
-              <Field label="Designation / Certification">
-                <Input value={it.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. CPA, CFA" />
-              </Field>
-              <Field label="Awarding body">
-                <Input value={it.body} onChange={(e) => set({ body: e.target.value })} placeholder="Institute / Association" />
-              </Field>
-              <Field label="Year">
-                <Input value={it.year} onChange={(e) => set({ year: e.target.value })} placeholder="YYYY" />
-              </Field>
-            </div>
-          )}
+          render={(it, _i, set) => {
+            const doc =
+              documents.find((d) => d.docType === 'prof' && d.professionalEntryId === it.id) ?? null;
+            return (
+              <div>
+                <div className="grid-3">
+                  <Field label="Designation / Certification">
+                    <Input value={it.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. CPA, CFA" />
+                  </Field>
+                  <Field label="Awarding body">
+                    <Input value={it.body} onChange={(e) => set({ body: e.target.value })} placeholder="Institute / Association" />
+                  </Field>
+                  <Field label="Year">
+                    <Input value={it.year} onChange={(e) => set({ year: e.target.value })} placeholder="YYYY" />
+                  </Field>
+                </div>
+                <Field label="Certificate" required hint="Upload the certificate for this professional qualification (PDF).">
+                  <EntryDocUpload
+                    currentDoc={doc}
+                    label="certificate"
+                    required
+                    onUpload={(file, onProgress) =>
+                      onUpload('prof', file, onProgress, { professionalEntryId: it.id })
+                    }
+                    onRemove={() => (doc ? onRemove(doc.id) : Promise.resolve())}
+                    onPreview={onPreview}
+                  />
+                </Field>
+              </div>
+            );
+          }}
         />
       </SectionBlock>
     </div>
@@ -419,13 +441,13 @@ export function StepReferences({ form, update, errors = {} }: StepProps) {
           addLabel="Add reference"
           render={(it, _i, set) => (
             <div className="grid-2">
-              <Field label="Full name">
+              <Field label="Full name" required>
                 <Input value={it.name} onChange={(e) => set({ name: e.target.value })} placeholder="Referee name" />
               </Field>
               <Field label="Position & organisation">
                 <Input value={it.positionOrg} onChange={(e) => set({ positionOrg: e.target.value })} placeholder="Title, Company" />
               </Field>
-              <Field label="Email">
+              <Field label="Email" required>
                 <Input type="email" value={it.email} onChange={(e) => set({ email: e.target.value })} placeholder="referee@example.com" />
               </Field>
               <Field label="Phone">
@@ -466,10 +488,11 @@ export function StepReferences({ form, update, errors = {} }: StepProps) {
 }
 
 /* ---------------- Step 7: Independence Declarations ---------------- */
-export function StepDeclarations({ form, update }: StepProps) {
+export function StepDeclarations({ form, update, errors = {} }: StepProps) {
   const flagged = ALL_DECL_IDS.filter((id) => form.declarations[id] === 'yes');
   const answered = ALL_DECL_IDS.filter((id) => form.declarations[id]);
   const allAnswered = answered.length === ALL_DECL_IDS.length;
+  const errs = Object.values(errors);
 
   const setAnswer = (id: string, v: 'yes' | 'no') =>
     update('declarations', { ...form.declarations, [id]: v });
@@ -478,11 +501,21 @@ export function StepDeclarations({ form, update }: StepProps) {
 
   return (
     <div>
+      {errs.length > 0 && (
+        <div className="indep-banner flag" style={{ marginBottom: 18, alignItems: 'flex-start' }}>
+          <TriangleAlert size={18} />
+          <ul style={{ margin: 0, paddingLeft: 18, fontWeight: 500 }}>
+            {errs.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {allAnswered &&
         (flagged.length === 0 ? (
           <div className="indep-banner clear">
             <ShieldCheck size={20} />
-            No independence concerns indicated — your responses are consistent with the Bank’s independence
+            No independence concerns indicated — your responses are consistent with Zemen Bank’s independence
             criteria.
           </div>
         ) : (
@@ -495,7 +528,7 @@ export function StepDeclarations({ form, update }: StepProps) {
 
       <p className="wiz-sub" style={{ marginTop: 0, marginBottom: 22 }}>
         Please answer <b>Yes</b> or <b>No</b> to each statement. These declarations form part of the Fit &
-        Proper assessment required by the Bank and the regulator.
+        Proper assessment required by Zemen Bank and the regulator.
       </p>
 
       {DECLARATIONS.map((g) => (

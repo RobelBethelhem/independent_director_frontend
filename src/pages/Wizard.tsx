@@ -282,10 +282,14 @@ export function Wizard() {
     const pe = phoneError(f.phone);
     if (pe) e.phone = pe;
     if (!f.country) e.country = 'Required';
+    if (!documents.some((d) => d.docType === 'photo')) {
+      e.photo = 'Upload a recent profile photo.';
+    }
     return e;
   }
 
-  /** Format-validate any reference details the applicant has filled in. */
+  /** Require two complete references (name + email + relationship), and
+   *  format-validate any details the applicant has filled in. */
   function validateReferences(f: WizardForm): Record<string, string> {
     const e: Record<string, string> = {};
     const filled = f.references.filter((r) => r.name || r.email || r.phone || r.positionOrg || r.relationship);
@@ -294,6 +298,10 @@ export function Wizard() {
     }
     if (filled.some((r) => r.phone && phoneError(r.phone, false))) {
       e.refPhone = 'A reference phone number is invalid — Ethiopian numbers must be +251 then 7 or 9 and 8 digits.';
+    }
+    const complete = f.references.filter((r) => r.name.trim() && r.email.trim() && r.relationship.trim());
+    if (complete.length < 2) {
+      e.references = 'Provide at least two references, each with a full name, email, and relationship to you.';
     }
     return e;
   }
@@ -315,6 +323,15 @@ export function Wizard() {
     );
     if (missingCert.length > 0) {
       e.educationDocs = `Attach the certificate (PDF) for each qualification — ${missingCert.length} still missing a document.`;
+    }
+
+    // Professional qualifications are optional, but any started entry must carry its certificate.
+    const profStarted = f.professionalQuals.filter((p) => p.name.trim() || p.body.trim() || p.year.trim());
+    const profMissingCert = profStarted.filter(
+      (p) => !documents.some((d) => d.docType === 'prof' && d.professionalEntryId === p.id),
+    );
+    if (profMissingCert.length > 0) {
+      e.professionalDocs = `Attach the certificate (PDF) for each professional qualification — ${profMissingCert.length} still missing a document.`;
     }
 
     // Eligibility (§4.1.1): a Master's-or-higher qualification in a relevant field.
@@ -370,6 +387,21 @@ export function Wizard() {
     return e;
   }
 
+  /** Every declaration must be answered, and every "yes" needs a written explanation. */
+  function validateDeclarations(f: WizardForm): Record<string, string> {
+    const e: Record<string, string> = {};
+    if (!ALL_DECL_IDS.every((id) => f.declarations[id])) {
+      e.declarations = 'Answer Yes or No to every declaration.';
+    }
+    const missingExplain = ALL_DECL_IDS.filter(
+      (id) => f.declarations[id] === 'yes' && !(f.declExplain[id] ?? '').trim(),
+    );
+    if (missingExplain.length > 0) {
+      e.declExplain = `Provide a written explanation for each declaration you answered "Yes" (${missingExplain.length} still missing).`;
+    }
+    return e;
+  }
+
   /** Per-step validation that gates forward navigation (steps with hard rules). */
   function validateStep(idx: number, f: WizardForm): Record<string, string> {
     if (idx === 0) return validatePersonal(f);
@@ -377,6 +409,7 @@ export function Wizard() {
     if (idx === 2) return validateEmployment(f);
     if (idx === 4) return validateReferences(f);
     if (idx === 5) return validateDocuments();
+    if (idx === 6) return validateDeclarations(f);
     return {};
   }
 
@@ -480,7 +513,7 @@ export function Wizard() {
       );
       break;
     case 'declarations':
-      body = <StepDeclarations form={form} update={update} />;
+      body = <StepDeclarations form={form} update={update} errors={errors} />;
       break;
     case 'review':
       body = (
@@ -497,7 +530,7 @@ export function Wizard() {
   }
 
   // Client-side submit gate, mirroring the server's validateForSubmit.
-  const validRefs = form.references.filter((r) => r.name && r.email).length >= 2;
+  const validRefs = form.references.filter((r) => r.name && r.email && r.relationship).length >= 2;
   const requiredDocs = REQUIRED_DOC_TYPES.every((t) => documents.some((d) => d.docType === t));
   const hasPhoto = documents.some((d) => d.docType === 'photo');
   const eduCertsOk = form.education
@@ -506,6 +539,9 @@ export function Wizard() {
   const workDocsOk = form.employment
     .filter((x) => x.org || x.role || x.fromMonth)
     .every((x) => documents.some((d) => d.docType === 'work' && d.employmentEntryId === x.id));
+  const profCertsOk = form.professionalQuals
+    .filter((p) => p.name || p.body || p.year)
+    .every((p) => documents.some((d) => d.docType === 'prof' && d.professionalEntryId === p.id));
   const declAnswered = ALL_DECL_IDS.every((id) => form.declarations[id]);
   const declExplained = ALL_DECL_IDS.every(
     (id) => form.declarations[id] !== 'yes' || (form.declExplain[id] ?? '').trim().length > 0,
@@ -522,6 +558,7 @@ export function Wizard() {
     hasPhoto &&
     eduCertsOk &&
     workDocsOk &&
+    profCertsOk &&
     declAnswered &&
     declExplained &&
     certified;

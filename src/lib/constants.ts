@@ -170,28 +170,28 @@ export const DECLARATIONS: DeclarationGroup[] = [
     items: [
       {
         id: 'a1',
-        q: 'I am currently a direct or indirect shareholder, director, Chief Executive Officer, or senior executive officer of the Bank.',
+        q: 'I am currently a direct or indirect shareholder, director, Chief Executive Officer, or senior executive officer of Zemen Bank.',
       },
       {
         id: 'a2',
-        q: 'I am a spouse or a first-degree relative (consanguinity or affinity) of a shareholder, director, CEO, or senior executive officer of the Bank.',
+        q: 'I am a spouse or a first-degree relative (consanguinity or affinity) of a shareholder, director, CEO, or senior executive officer of Zemen Bank.',
       },
       {
         id: 'a3',
-        q: 'I am part of the Bank’s senior management or involved in its day-to-day operational management.',
+        q: 'I am part of Zemen Bank’s senior management or involved in its day-to-day operational management.',
       },
     ],
   },
   {
-    group: 'B. Relationships with the Bank or Related Entities',
+    group: 'B. Relationships with Zemen Bank or Related Entities',
     items: [
       {
         id: 'b1',
-        q: 'I currently have, or have had in the last two (2) years, any business, professional, or commercial relationship with the Bank.',
+        q: 'I currently have, or have had in the last two (2) years, any business, professional, or commercial relationship with Zemen Bank.',
       },
       {
         id: 'b2',
-        q: 'I am a shareholder, director, CEO, or senior executive officer of any company that has contractual obligations with the Bank.',
+        q: 'I am a shareholder, director, CEO, or senior executive officer of any company that has contractual obligations with Zemen Bank.',
       },
     ],
   },
@@ -200,7 +200,7 @@ export const DECLARATIONS: DeclarationGroup[] = [
     items: [
       {
         id: 'c1',
-        q: 'I am currently involved, directly or indirectly, in any legal proceedings or out-of-court disputes against the Bank, its parent undertaking, or its subsidiaries.',
+        q: 'I am currently involved, directly or indirectly, in any legal proceedings or out-of-court disputes against Zemen Bank, its parent undertaking, or its subsidiaries.',
       },
     ],
   },
@@ -209,7 +209,7 @@ export const DECLARATIONS: DeclarationGroup[] = [
     items: [
       {
         id: 'd1',
-        q: 'I have financial obligations to the Bank with a total outstanding amount exceeding Birr 50 million.',
+        q: 'I have financial obligations to Zemen Bank with a total outstanding amount exceeding Birr 50 million.',
       },
     ],
   },

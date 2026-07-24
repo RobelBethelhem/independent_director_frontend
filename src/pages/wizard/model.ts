@@ -43,6 +43,7 @@ export interface EduForm {
   year: string;
 }
 export interface ProfForm {
+  id: string;
   name: string;
   body: string;
   year: string;
@@ -99,7 +100,7 @@ export interface WizardForm {
 }
 
 export const blankEdu = (): EduForm => ({ id: uid(), degree: '', field: '', institution: '', year: '' });
-export const blankProf = (): ProfForm => ({ name: '', body: '', year: '' });
+export const blankProf = (): ProfForm => ({ id: uid(), name: '', body: '', year: '' });
 export const blankEmp = (): EmpForm => ({
   id: uid(),
   org: '',
@@ -155,6 +156,7 @@ export function hydrate(app: Application): WizardForm {
       blankEdu,
     ),
     professionalQuals: (app.professionalQuals ?? []).map((p) => ({
+      id: p.id ?? uid(),
       name: s(p.name),
       body: s(p.body),
       year: s(p.year),

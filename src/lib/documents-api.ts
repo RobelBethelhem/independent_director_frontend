@@ -10,12 +10,14 @@ export interface DocumentRecord {
   uploadedAt: string;
   educationEntryId?: string | null;
   employmentEntryId?: string | null;
+  professionalEntryId?: string | null;
 }
 
-/** Optional soft link tying a file to a specific education / employment entry. */
+/** Optional soft link tying a file to a specific education / employment / professional entry. */
 export interface DocLink {
   educationEntryId?: string;
   employmentEntryId?: string;
+  professionalEntryId?: string;
 }
 
 interface PresignResult {
@@ -76,6 +78,7 @@ export const documentsApi = {
         sizeBytes: file.size,
         ...(link?.educationEntryId ? { educationEntryId: link.educationEntryId } : {}),
         ...(link?.employmentEntryId ? { employmentEntryId: link.employmentEntryId } : {}),
+        ...(link?.professionalEntryId ? { professionalEntryId: link.professionalEntryId } : {}),
       },
     });
   },
