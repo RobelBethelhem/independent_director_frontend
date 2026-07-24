@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Globe, Save, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, ExternalLink, FileText, Globe, Save, ShieldCheck } from 'lucide-react';
+import { MANDATORY_REQUIREMENTS, NBE_PROCLAMATION_LABEL, NBE_PROCLAMATION_URL } from '../lib/constants';
 
 /**
  * Public landing (Applicant.Landing). Hero + info card + 3-up feature row.
@@ -59,6 +60,44 @@ export function Landing() {
             </div>
           </aside>
         </div>
+      </section>
+
+      <section className="container reqs">
+        <div className="reqs-head">
+          <div className="eyebrow">Before you begin</div>
+          <h2 className="serif reqs-title">Basic &amp; mandatory requirements</h2>
+          <p className="reqs-lede">
+            To be eligible as an Independent Director of Zemen Bank you must meet <b>all</b> of the requirements
+            below. Please read them carefully — you will confirm that you qualify before creating an account.
+          </p>
+        </div>
+
+        <div className="reqs-grid">
+          {MANDATORY_REQUIREMENTS.map((r) => (
+            <div key={r.title} className="req-item">
+              <div className="req-ic" aria-hidden>
+                <CheckCircle2 size={18} />
+              </div>
+              <div>
+                <h4>{r.title}</h4>
+                <p>{r.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="reqs-actions">
+          <a className="btn btn-ghost btn-lg" href={NBE_PROCLAMATION_URL} target="_blank" rel="noopener noreferrer">
+            <FileText size={17} /> Read the NBE proclamation on independent directors
+            <ExternalLink size={14} style={{ opacity: 0.7 }} />
+          </a>
+          <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth?mode=register')}>
+            I meet these requirements — start
+          </button>
+        </div>
+        <p className="reqs-ref">
+          Governing regulation: <b>{NBE_PROCLAMATION_LABEL}</b>.
+        </p>
       </section>
 
       <div className="container">

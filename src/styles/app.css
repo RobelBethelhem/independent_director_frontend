@@ -1766,6 +1766,64 @@ table.dt tbody tr:last-child td {
   line-height: 1.55;
 }
 
+/* ---------- Landing: basic & mandatory requirements ---------- */
+.reqs {
+  padding-top: 8px;
+}
+.reqs-head {
+  max-width: 760px;
+}
+.reqs-title {
+  font-size: 26px;
+  margin-top: 10px;
+}
+.reqs-lede {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.reqs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 24px 0 22px;
+}
+.req-item {
+  display: flex;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1.4px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+.req-item .req-ic {
+  color: var(--ok);
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.req-item h4 {
+  font-size: 14.5px;
+  margin: 0 0 4px;
+}
+.req-item p {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0;
+}
+.reqs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.reqs-ref {
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
 /* ---------- Auth ---------- */
 .auth-wrap {
   min-height: calc(100vh - var(--header-h));
@@ -1847,6 +1905,32 @@ table.dt tbody tr:last-child td {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Mandatory-requirements checklist shown in the pre-registration gate. */
+.auth-reqs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.auth-reqs li {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.auth-reqs li svg {
+  color: var(--ok);
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.auth-reqs li b {
+  color: var(--ink);
+  font-weight: 650;
 }
 
 /* ---------- OTP ---------- */

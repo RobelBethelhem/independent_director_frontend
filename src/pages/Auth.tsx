@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BadgeCheck, Laptop, Lock, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Check, CheckCircle2, ExternalLink, FileText, Laptop, Lock, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { useAuth, SESSION_END_REASON_KEY } from '../auth/AuthContext';
 import { authApi } from '../lib/auth-api';
 import { HttpError } from '../lib/api';
 import { isLoginChallenge, type LoginResult } from '../lib/types';
 import { PASSWORD_HINT, validatePassword } from '../lib/password';
 import { homeFor } from '../lib/routes';
-import { phoneError } from '../lib/constants';
+import { MANDATORY_REQUIREMENTS, NBE_PROCLAMATION_LABEL, NBE_PROCLAMATION_URL, phoneError } from '../lib/constants';
 import { Field, Input, Logo } from '../components/ui';
 
 type Mode = 'register' | 'login';
@@ -35,6 +35,13 @@ export function Auth() {
   const initialMode: Mode = rec?.recommendToken ? 'register' : params.get('mode') === 'login' ? 'login' : 'register';
   const [mode, setMode] = useState<Mode>(initialMode);
   const [step, setStep] = useState<Step>('form');
+
+  // Account creation is gated: an applicant must read the mandatory requirements
+  // and confirm they qualify before the registration form is shown. `agree` is
+  // the checkbox; `acknowledged` means they passed the gate. Login is unaffected.
+  const [agree, setAgree] = useState(false);
+  const [acknowledged, setAcknowledged] = useState(false);
+  const showRequirementsGate = mode === 'register' && !acknowledged;
 
   const [email, setEmail] = useState(rec?.recommendEmail ?? '');
   const [phone, setPhone] = useState('');
@@ -268,7 +275,9 @@ export function Auth() {
               </h2>
               <p className="muted" style={{ marginBottom: rec?.recommenderName ? 14 : 22, fontSize: 14 }}>
                 {mode === 'register'
-                  ? 'Register to begin your Independent Director application.'
+                  ? showRequirementsGate
+                    ? 'First, review the mandatory requirements and confirm that you qualify.'
+                    : 'Register to begin your Independent Director application.'
                   : 'Sign in to continue or track your application.'}
               </p>
               {rec?.recommenderName && (
@@ -309,6 +318,48 @@ export function Auth() {
                 </button>
               </div>
 
+              {showRequirementsGate ? (
+                <div className="auth-form" role="group" aria-label="Eligibility requirements">
+                  <div className="indep-banner info" style={{ fontSize: 13, alignItems: 'flex-start' }}>
+                    <ShieldCheck size={18} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                    <span>Please confirm you meet the mandatory requirements below before creating your account.</span>
+                  </div>
+                  <ul className="auth-reqs">
+                    {MANDATORY_REQUIREMENTS.map((r) => (
+                      <li key={r.title}>
+                        <CheckCircle2 size={16} />
+                        <span>
+                          <b>{r.title}.</b> {r.detail}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    className="btn btn-ghost btn-block"
+                    href={NBE_PROCLAMATION_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <FileText size={16} /> Read the NBE proclamation on independent directors
+                    <ExternalLink size={13} style={{ opacity: 0.7 }} />
+                  </a>
+                  <label className={`certify-check${agree ? ' on' : ''}`} onClick={() => setAgree((v) => !v)}>
+                    <div className="cc-box">{agree && <Check size={14} strokeWidth={3} />}</div>
+                    <span>I have read the requirements above and confirm that I meet them.</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-block btn-lg"
+                    disabled={!agree}
+                    onClick={() => setAcknowledged(true)}
+                  >
+                    Continue to create account
+                  </button>
+                  <p className="muted" style={{ fontSize: 12, textAlign: 'center', lineHeight: 1.5 }}>
+                    Governing regulation: {NBE_PROCLAMATION_LABEL}.
+                  </p>
+                </div>
+              ) : (
               <form className="auth-form" onSubmit={onSubmitForm} noValidate>
                 <Field label="Email" required error={errors.email}>
                   <Input
@@ -374,6 +425,7 @@ export function Auth() {
                   </p>
                 )}
               </form>
+              )}
             </>
           ) : step === 'otp' ? (
             <form className="auth-form" onSubmit={onSubmitOtp}>

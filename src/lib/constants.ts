@@ -130,6 +130,48 @@ export const DESIRABLE_CRITERIA = [
   'Strong interpersonal and teamwork skills',
 ];
 
+/**
+ * Basic & mandatory eligibility requirements for the Independent Director role
+ * (Nomination Procedure §4.1; Banking Business Proclamation No. 1360/2025).
+ * Shown on the public landing page and acknowledged before account creation.
+ * These mirror the hard rules the server enforces at submission (validateForSubmit).
+ */
+export const MANDATORY_REQUIREMENTS: { title: string; detail: string }[] = [
+  {
+    title: 'Master’s degree or higher',
+    detail:
+      'A Master’s degree (MSc) or above in banking, finance, accounting, auditing, business management, economics, law, or technology (or a related field).',
+  },
+  {
+    title: 'Ten (10)+ years of experience',
+    detail: 'A minimum of ten years of relevant professional experience, evidenced by your employment history.',
+  },
+  {
+    title: 'Independence from Zemen Bank',
+    detail:
+      'You must be independent of Zemen Bank’s ownership and management — not a shareholder, director, CEO, or senior executive of the Bank (nor a first-degree relative of one), with no significant business, legal, or financial ties to the Bank.',
+  },
+  {
+    title: 'Fit & proper standing',
+    detail:
+      'At least 18 years of age, of good reputation, and with no record that would disqualify you from serving as a director.',
+  },
+  {
+    title: 'Supporting documents',
+    detail:
+      'A CV, educational certificates, evidence of experience, a National ID or passport, TIN, and a recent photo (PDF/image).',
+  },
+];
+
+/**
+ * The governing National Bank of Ethiopia proclamation/directive on independent
+ * directors, linked from the landing page and the pre-registration gate.
+ * NOTE: point NBE_PROCLAMATION_URL at the exact hosted PDF or NBE page for the
+ * directive (default is the NBE site until the precise link is supplied).
+ */
+export const NBE_PROCLAMATION_LABEL = 'NBE Banking Business Proclamation No. 1360/2025';
+export const NBE_PROCLAMATION_URL = 'https://nbe.gov.et';
+
 export const BOARD_TYPES = [
   'Listed company',
   'Financial institution',
