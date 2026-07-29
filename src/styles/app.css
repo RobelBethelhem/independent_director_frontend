@@ -181,7 +181,7 @@
   align-items: center;
   gap: 6px;
 }
-.field .req {
+.req {
   color: var(--brand);
   font-weight: 700;
 }

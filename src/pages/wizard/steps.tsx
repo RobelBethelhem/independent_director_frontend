@@ -64,16 +64,17 @@ export function StepPersonal({
 }: StepProps & PhotoStepProps) {
   return (
     <div>
-      <SectionBlock title="Profile photo" first>
+      <SectionBlock title="Profile photo" first required>
         <p className="wiz-sub" style={{ marginTop: -6, marginBottom: 14 }}>
-          Upload a recent photo of yourself <span className="req">*</span>. It is shown to the Nomination &amp;
-          Governance Committee with your application.
+          A profile photo is <b>required</b>. Upload a recent photo of yourself — it is shown to the Nomination
+          &amp; Governance Committee with your application.
         </p>
         <PhotoUpload
           currentDoc={photo}
           onUpload={onUploadPhoto}
           onRemove={onRemovePhoto}
           loadThumb={loadPhotoThumb}
+          missing={!!errors.photo}
         />
         {errors.photo && (
           <div className="errmsg" style={{ marginTop: 8 }}>

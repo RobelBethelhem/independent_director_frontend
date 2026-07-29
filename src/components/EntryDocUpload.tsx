@@ -135,10 +135,12 @@ interface PhotoProps {
   onRemove: () => Promise<void>;
   /** Resolves a short-lived image URL for the thumbnail. */
   loadThumb: (docId: string) => Promise<string>;
+  /** Highlight the control (brand-red) when the photo is required but missing. */
+  missing?: boolean;
 }
 
 /** Square image uploader for the applicant's profile photo (PNG/JPEG/WebP). */
-export function PhotoUpload({ currentDoc, onUpload, onRemove, loadThumb }: PhotoProps) {
+export function PhotoUpload({ currentDoc, onUpload, onRemove, loadThumb, missing }: PhotoProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [pct, setPct] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -202,7 +204,7 @@ export function PhotoUpload({ currentDoc, onUpload, onRemove, loadThumb }: Photo
           height: 96,
           borderRadius: 14,
           flex: '0 0 auto',
-          border: `1.5px ${currentDoc ? 'solid' : 'dashed'} var(--line-2)`,
+          border: `1.5px ${currentDoc ? 'solid' : 'dashed'} ${missing && !currentDoc ? 'var(--brand)' : 'var(--line-2)'}`,
           background: 'var(--paper-2)',
           display: 'grid',
           placeItems: 'center',

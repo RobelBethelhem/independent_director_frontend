@@ -2,10 +2,23 @@ import type { ReactNode } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 
 /** Uppercase divider heading for a sub-section within a step. */
-export function SectionBlock({ title, children, first }: { title: string; children: ReactNode; first?: boolean }) {
+export function SectionBlock({
+  title,
+  children,
+  first,
+  required,
+}: {
+  title: string;
+  children: ReactNode;
+  first?: boolean;
+  required?: boolean;
+}) {
   return (
     <div className="section-block" style={first ? { marginTop: 0 } : undefined}>
-      <div className="sb-h">{title}</div>
+      <div className="sb-h">
+        {title}
+        {required && <span className="req" style={{ marginLeft: 3 }}>*</span>}
+      </div>
       {children}
     </div>
   );
