@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, Save } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, HelpCircle, Save } from 'lucide-react';
 import { applicationsApi } from '../lib/applications-api';
 import { documentsApi, type DocLink, type DocumentRecord } from '../lib/documents-api';
 import { authApi } from '../lib/auth-api';
@@ -33,6 +33,46 @@ import { StepDocuments } from './wizard/StepDocuments';
 import { StepReview } from './wizard/StepReview';
 import { DocumentPreview } from '../components/DocumentPreview';
 import { SubmitConfirmModal } from '../components/SubmitConfirmModal';
+import { OnboardingTour, type TourStep } from '../components/OnboardingTour';
+
+/** Shown once (per browser) the first time an applicant opens a fresh draft. */
+const TOUR_KEY = 'zemen.tour.apply.v1';
+
+/** Guided walkthrough of the applicant wizard — orients first-time applicants. */
+const TOUR_STEPS: TourStep[] = [
+  {
+    title: 'Welcome — let’s walk you through it',
+    body: 'This quick tour shows how your application works. It takes about 20 minutes in total, and everything you enter is saved automatically as you go. You can skip this and replay it anytime.',
+  },
+  {
+    selector: '[data-tour="steps"]',
+    title: 'Your progress',
+    body: 'Your application is organised into eight short sections. Track where you are here, and jump back to any section you have already completed.',
+    placement: 'right',
+  },
+  {
+    selector: '[data-tour="photo"]',
+    title: 'Start with your photo',
+    body: 'Fields marked with a red asterisk (*) are required. Begin by uploading a recent photo of yourself — the Nomination & Governance Committee sees it with your application.',
+    placement: 'right',
+  },
+  {
+    selector: '[data-tour="personal"]',
+    title: 'Your details',
+    body: 'Fill in your personal and contact information. We have pre-filled what we already have from your account — just complete the rest.',
+    placement: 'top',
+  },
+  {
+    selector: '[data-tour="continue"]',
+    title: 'Move forward',
+    body: 'Once a section’s required fields are complete, Continue takes you to the next one. On the final Review section you will submit your application.',
+    placement: 'left',
+  },
+  {
+    title: 'You’re all set',
+    body: 'Complete each section at your own pace — your progress is always saved. Need this walkthrough again? Click “Guided tour” at the top of the page anytime. Good luck!',
+  },
+];
 
 const STEPS = [
   { id: 'personal', label: 'Personal & Contact' },
@@ -87,6 +127,7 @@ export function Wizard() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
 
   // Latest form snapshot (saves read from here so debounced flushes see fresh data).
@@ -137,6 +178,15 @@ export function Wizard() {
         if (app.currentStep > 0 && app.currentStep < STEPS.length) setStepIndex(app.currentStep);
         if (app.maxStepSeen > 0 && app.maxStepSeen < STEPS.length) setMaxSeen(app.maxStepSeen);
         hydrated.current = true;
+        // First-time applicants on a fresh draft (still on step 1) get a one-time
+        // guided tour. Gated per browser; replayable via the "Guided tour" button.
+        try {
+          if ((app.currentStep ?? 0) === 0 && !localStorage.getItem(TOUR_KEY)) {
+            setTimeout(() => setTourOpen(true), 550);
+          }
+        } catch {
+          /* localStorage unavailable — skip the tour silently */
+        }
       } catch {
         setLoadError('Could not load your application. Please retry.');
       }
@@ -445,6 +495,21 @@ export function Wizard() {
     if (stepIndex > 0) goTo(stepIndex - 1);
   }
 
+  /** Replay the guided tour — jump back to step 1 (its targets live there). */
+  function startTour() {
+    if (stepIndex !== 0) goTo(0);
+    setTourOpen(true);
+  }
+  /** Close the tour and remember it's been seen (per browser). */
+  function finishTour() {
+    setTourOpen(false);
+    try {
+      localStorage.setItem(TOUR_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+  }
+
   if (loadError) {
     return (
       <div className="container" style={{ padding: '60px 0' }}>
@@ -577,7 +642,7 @@ export function Wizard() {
   return (
     <>
     <div className="wiz">
-      <aside className="wiz-aside">
+      <aside className="wiz-aside" data-tour="steps">
         <div className="wiz-prog">
           Step {stepIndex + 1} of {STEPS.length}
         </div>
@@ -612,7 +677,7 @@ export function Wizard() {
       <div className="wiz-main" ref={mainRef}>
         {/* Mobile/tablet stepper — replaces the hidden left rail on small screens
             so applicants can see progress and jump between steps. */}
-        <div className="wiz-msteps">
+        <div className="wiz-msteps" data-tour="steps">
           <div className="wiz-msteps-top">
             <span className="wiz-prog">Step {stepIndex + 1} of {STEPS.length}</span>
             <span className="wiz-mcurrent">{step.label}</span>
@@ -638,7 +703,12 @@ export function Wizard() {
           </div>
         </div>
         <div className="wiz-main-inner fade-up" key={stepIndex}>
-          <div className="eyebrow">Independent Director Application</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div className="eyebrow">Independent Director Application</div>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={startTour} title="Replay the guided walkthrough">
+              <HelpCircle size={14} /> Guided tour
+            </button>
+          </div>
           <h2 className="wiz-h" style={{ marginTop: 8 }}>
             {step.label}
           </h2>
@@ -667,7 +737,7 @@ export function Wizard() {
                 <Check size={16} /> {submitted ? 'Submitted' : submitting ? 'Submitting…' : 'Submit application'}
               </button>
             ) : (
-              <button className="btn btn-primary" onClick={next}>
+              <button className="btn btn-primary" onClick={next} data-tour="continue">
                 Continue <ArrowRight size={16} />
               </button>
             )}
@@ -704,6 +774,7 @@ export function Wizard() {
         }
       />
     )}
+    {tourOpen && <OnboardingTour steps={TOUR_STEPS} onClose={finishTour} />}
     </>
   );
 }

@@ -7,14 +7,16 @@ export function SectionBlock({
   children,
   first,
   required,
+  dataTour,
 }: {
   title: string;
   children: ReactNode;
   first?: boolean;
   required?: boolean;
+  dataTour?: string;
 }) {
   return (
-    <div className="section-block" style={first ? { marginTop: 0 } : undefined}>
+    <div className="section-block" data-tour={dataTour} style={first ? { marginTop: 0 } : undefined}>
       <div className="sb-h">
         {title}
         {required && <span className="req" style={{ marginLeft: 3 }}>*</span>}

@@ -1933,6 +1933,158 @@ table.dt tbody tr:last-child td {
   font-weight: 650;
 }
 
+/* ---------- Onboarding tour (applicant wizard walkthrough) ---------- */
+.tour-root {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+}
+.tour-catch {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  animation: tourFade 0.25s ease;
+}
+@keyframes tourFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.tour-spot {
+  position: fixed;
+  z-index: 5001;
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(20, 18, 16, 0.62);
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+  transition:
+    top 0.42s cubic-bezier(0.4, 0, 0.2, 1),
+    left 0.42s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.42s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tour-spot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 13px;
+  pointer-events: none;
+  animation: tourPulse 2.2s ease-out infinite;
+}
+@keyframes tourPulse {
+  0% { box-shadow: 0 0 0 0 rgba(237, 29, 36, 0.4); }
+  70%, 100% { box-shadow: 0 0 0 13px rgba(237, 29, 36, 0); }
+}
+.tour-pointer {
+  position: fixed;
+  z-index: 5002;
+  color: var(--brand);
+  pointer-events: none;
+  filter: drop-shadow(0 2px 5px rgba(20, 18, 16, 0.45));
+  transition:
+    top 0.46s cubic-bezier(0.34, 1.25, 0.64, 1),
+    left 0.46s cubic-bezier(0.34, 1.25, 0.64, 1);
+}
+.tour-pointer svg {
+  animation: tourBob 1.5s ease-in-out infinite;
+  fill: rgba(237, 29, 36, 0.16);
+}
+@keyframes tourBob {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(4px, 4px); }
+}
+.tour-callout {
+  position: fixed;
+  z-index: 5003;
+  width: 344px;
+  max-width: calc(100vw - 32px);
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px -14px rgba(20, 18, 16, 0.5);
+  padding: 20px 20px 15px;
+  transition:
+    top 0.42s cubic-bezier(0.4, 0, 0.2, 1),
+    left 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tour-callout.centered {
+  width: 424px;
+  padding: 26px 26px 20px;
+  animation: tourPop 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes tourPop {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.tour-x {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--ink-3);
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.tour-x:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+.tour-step-n {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--brand);
+  font-weight: 700;
+}
+.tour-title {
+  font-size: 19px;
+  line-height: 1.25;
+  margin: 7px 0 8px;
+  color: var(--ink);
+}
+.tour-body {
+  font-size: 13.5px;
+  line-height: 1.62;
+  color: var(--ink-2);
+  margin: 0 0 15px;
+}
+.tour-dots {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 15px;
+}
+.tour-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line-2);
+  transition: width 0.3s, background 0.3s;
+}
+.tour-dots span.on {
+  width: 22px;
+  border-radius: 4px;
+  background: var(--brand);
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tour-skip {
+  color: var(--ink-3);
+  font-size: 13px;
+  padding: 4px 2px;
+}
+.tour-skip:hover {
+  color: var(--ink);
+}
+
 /* ---------- OTP ---------- */
 .otp-row {
   display: flex;

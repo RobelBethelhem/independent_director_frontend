@@ -64,7 +64,7 @@ export function StepPersonal({
 }: StepProps & PhotoStepProps) {
   return (
     <div>
-      <SectionBlock title="Profile photo" first required>
+      <SectionBlock title="Profile photo" first required dataTour="photo">
         <p className="wiz-sub" style={{ marginTop: -6, marginBottom: 14 }}>
           A profile photo is <b>required</b>. Upload a recent photo of yourself — it is shown to the Nomination
           &amp; Governance Committee with your application.
@@ -83,7 +83,7 @@ export function StepPersonal({
         )}
       </SectionBlock>
 
-      <SectionBlock title="Personal information">
+      <SectionBlock title="Personal information" dataTour="personal">
         <div className="grid-3">
           <Field label="Title">
             <Select value={form.title} onChange={(e) => update('title', e.target.value)} options={TITLES} placeholder="Select" />
