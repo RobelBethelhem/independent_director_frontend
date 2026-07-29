@@ -164,13 +164,14 @@ export const MANDATORY_REQUIREMENTS: { title: string; detail: string }[] = [
 ];
 
 /**
- * The governing National Bank of Ethiopia proclamation/directive on independent
- * directors, linked from the landing page and the pre-registration gate.
- * NOTE: point NBE_PROCLAMATION_URL at the exact hosted PDF or NBE page for the
- * directive (default is the NBE site until the precise link is supplied).
+ * The governing National Bank of Ethiopia directive on the eligibility of
+ * persons with significant influence in a bank (directors included), linked
+ * from the landing page and the pre-registration gate.
  */
-export const NBE_PROCLAMATION_LABEL = 'NBE Banking Business Proclamation No. 1360/2025';
-export const NBE_PROCLAMATION_URL = 'https://nbe.gov.et';
+export const NBE_PROCLAMATION_LABEL =
+  'NBE Directive No. SBB/89/2024 — Requirements for Persons with Significant Influence in a Bank';
+export const NBE_PROCLAMATION_URL =
+  'https://nbe.gov.et/files/sbb-89-2024-requirements-for-persons-with-significant-influence-in-a-bank/';
 
 export const BOARD_TYPES = [
   'Listed company',

@@ -80,6 +80,10 @@ export function Wizard() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  // Latches true the moment a submission succeeds, so the Submit button can never
+  // be clicked again in this session (the wizard also redirects an already-
+  // submitted application to the tracker on load, and the API rejects re-submits).
+  const [submitted, setSubmitted] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -205,6 +209,8 @@ export function Wizard() {
     setSubmitting(true);
     try {
       const result = await applicationsApi.submit(appId);
+      // Lock the button immediately — before navigation — so it can't be re-fired.
+      setSubmitted(true);
       navigate('/success', { state: { reference: result.reference } });
     } catch (err) {
       // Close the confirmation so the errors are visible on the review page.
@@ -650,8 +656,12 @@ export function Wizard() {
               {save === 'saving' ? 'Saving…' : save === 'saved' ? 'Progress saved automatically' : ''}
             </span>
             {isLast ? (
-              <button className="btn btn-primary" disabled={!canSubmit || submitting} onClick={() => setConfirmOpen(true)}>
-                <Check size={16} /> {submitting ? 'Submitting…' : 'Submit application'}
+              <button
+                className="btn btn-primary"
+                disabled={!canSubmit || submitting || submitted}
+                onClick={() => setConfirmOpen(true)}
+              >
+                <Check size={16} /> {submitted ? 'Submitted' : submitting ? 'Submitting…' : 'Submit application'}
               </button>
             ) : (
               <button className="btn btn-primary" onClick={next}>
@@ -673,7 +683,7 @@ export function Wizard() {
       <SubmitConfirmModal
         title="Submit your application"
         confirmLabel="Submit application"
-        busy={submitting}
+        busy={submitting || submitted}
         onConfirm={() => void submit()}
         onClose={() => setConfirmOpen(false)}
         declaration={
