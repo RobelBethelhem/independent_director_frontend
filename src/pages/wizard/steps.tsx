@@ -168,7 +168,7 @@ export function StepEducation({
           </ul>
         </div>
       )}
-      <SectionBlock title="Educational qualifications" first>
+      <SectionBlock title="Educational qualifications" first dataTour="education">
         <p className="wiz-sub" style={{ marginTop: -6, marginBottom: 16 }}>
           A <b>Master’s degree (MSc) or higher is required</b> to be eligible as an Independent Director.
         </p>
@@ -219,7 +219,7 @@ export function StepEducation({
         />
       </SectionBlock>
 
-      <SectionBlock title="Professional Qualifications & Certificates">
+      <SectionBlock title="Professional Qualifications & Certificates" dataTour="professional">
         <p className="wiz-sub" style={{ marginTop: -6, marginBottom: 16 }}>
           Optional. If you add a professional qualification, attach its certificate — the same as the education
           section above.
@@ -290,7 +290,7 @@ export function StepEmployment({
           </ul>
         </div>
       )}
-      <SectionBlock title="Employment history" first>
+      <SectionBlock title="Employment history" first dataTour="employment">
         <p className="wiz-sub" style={{ marginTop: -6, marginBottom: 16 }}>
           A minimum of <b>ten (10) years of professional experience</b> is required to be eligible as an
           Independent Director. List your positions, starting with the current or latest — total so far:{' '}
@@ -364,7 +364,7 @@ export function StepGovernance({ form, update }: StepProps) {
           </ul>
         </div>
       </div>
-      <SectionBlock title="Board & governance experience" first>
+      <SectionBlock title="Board & governance experience" first dataTour="boards">
         <EntryList
           items={form.boards}
           onChange={(v) => update('boards', v)}
@@ -404,7 +404,7 @@ export function StepGovernance({ form, update }: StepProps) {
         />
       </SectionBlock>
 
-      <SectionBlock title="Areas of expertise">
+      <SectionBlock title="Areas of expertise" dataTour="expertise">
         <p className="wiz-sub" style={{ marginTop: -6, marginBottom: 16 }}>
           Select all that apply. These help the Committee map board competencies.
         </p>
@@ -429,7 +429,7 @@ export function StepReferences({ form, update, errors = {} }: StepProps) {
           </ul>
         </div>
       )}
-      <SectionBlock title="Professional references" first>
+      <SectionBlock title="Professional references" first dataTour="references">
         <p className="wiz-sub" style={{ marginTop: -6, marginBottom: 16 }}>
           Provide at least two referees who can attest to your professional standing. Each referee must state
           their relationship to you.
@@ -471,7 +471,7 @@ export function StepReferences({ form, update, errors = {} }: StepProps) {
         />
       </SectionBlock>
 
-      <SectionBlock title="Conflict of interest disclosure">
+      <SectionBlock title="Conflict of interest disclosure" dataTour="conflicts">
         <Field
           label="Describe any actual, potential or perceived conflicts of interest"
           hint="If none, state “None”. Detailed independence questions follow in a later step."
@@ -532,6 +532,7 @@ export function StepDeclarations({ form, update, errors = {} }: StepProps) {
         Proper assessment required by Zemen Bank and the regulator.
       </p>
 
+      <div data-tour="declarations">
       {DECLARATIONS.map((g) => (
         <div key={g.group} className="decl-group">
           <div className="decl-group-h">{g.group}</div>
@@ -561,6 +562,7 @@ export function StepDeclarations({ form, update, errors = {} }: StepProps) {
           })}
         </div>
       ))}
+      </div>
     </div>
   );
 }

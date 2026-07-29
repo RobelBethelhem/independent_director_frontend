@@ -83,7 +83,7 @@ export function StepDocuments({ documents, onUpload, onRemove, onPreview, errors
         <b>work-experience documents</b> are collected on the Personal, Education and Employment steps.
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div data-tour="documents" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         {DOC_TYPES.map((dt) => {
           const files = documents.filter((d) => d.docType === dt.id);
           const ups = uploading[dt.id] ?? [];

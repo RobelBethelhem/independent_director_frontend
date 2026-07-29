@@ -35,44 +35,128 @@ import { DocumentPreview } from '../components/DocumentPreview';
 import { SubmitConfirmModal } from '../components/SubmitConfirmModal';
 import { OnboardingTour, type TourStep } from '../components/OnboardingTour';
 
-/** Shown once (per browser) the first time an applicant opens a fresh draft. */
-const TOUR_KEY = 'zemen.tour.apply.v1';
+/** Tracks which sections' walkthroughs the applicant has already seen (per browser). */
+const TOUR_KEY = 'zemen.tour.apply.v2';
 
-/** Guided walkthrough of the applicant wizard — orients first-time applicants. */
-const TOUR_STEPS: TourStep[] = [
-  {
-    title: 'Welcome — let’s walk you through it',
-    body: 'This quick tour shows how your application works. It takes about 20 minutes in total, and everything you enter is saved automatically as you go. You can skip this and replay it anytime.',
-  },
-  {
-    selector: '[data-tour="steps"]',
-    title: 'Your progress',
-    body: 'Your application is organised into eight short sections. Track where you are here, and jump back to any section you have already completed.',
-    placement: 'right',
-  },
-  {
-    selector: '[data-tour="photo"]',
-    title: 'Start with your photo',
-    body: 'Fields marked with a red asterisk (*) are required. Begin by uploading a recent photo of yourself — the Nomination & Governance Committee sees it with your application.',
-    placement: 'right',
-  },
-  {
-    selector: '[data-tour="personal"]',
-    title: 'Your details',
-    body: 'Fill in your personal and contact information. We have pre-filled what we already have from your account — just complete the rest.',
-    placement: 'top',
-  },
-  {
-    selector: '[data-tour="continue"]',
-    title: 'Move forward',
-    body: 'Once a section’s required fields are complete, Continue takes you to the next one. On the final Review section you will submit your application.',
-    placement: 'left',
-  },
-  {
-    title: 'You’re all set',
-    body: 'Complete each section at your own pace — your progress is always saved. Need this walkthrough again? Click “Guided tour” at the top of the page anytime. Good luck!',
-  },
-];
+/** A short, contextual guided walkthrough for each wizard section, shown the
+ *  first time the applicant reaches it. Keyed by step index. */
+const TOUR_BY_STEP: Record<number, TourStep[]> = {
+  0: [
+    {
+      title: 'Welcome — let’s walk you through it',
+      body: 'This quick tour shows how your application works. It takes about 20 minutes in total, and everything you enter is saved automatically as you go. You can skip this and replay it anytime.',
+    },
+    {
+      selector: '[data-tour="steps"]',
+      title: 'Your progress',
+      body: 'Your application is organised into eight short sections. Track where you are here, and jump back to any section you have already completed.',
+      placement: 'right',
+    },
+    {
+      selector: '[data-tour="photo"]',
+      title: 'Start with your photo',
+      body: 'Fields marked with a red asterisk (*) are required. Begin by uploading a recent photo of yourself — the Nomination & Governance Committee sees it with your application.',
+      placement: 'right',
+    },
+    {
+      selector: '[data-tour="personal"]',
+      title: 'Your details',
+      body: 'Fill in your personal and contact information. We have pre-filled what we already have from your account — just complete the rest.',
+      placement: 'top',
+    },
+    {
+      selector: '[data-tour="continue"]',
+      title: 'Move forward',
+      body: 'Once a section’s required fields are complete, Continue takes you to the next one — and I’ll share a quick tip like this each time you reach a new section.',
+      placement: 'left',
+    },
+  ],
+  1: [
+    {
+      selector: '[data-tour="education"]',
+      title: 'Your qualifications',
+      body: 'Add each degree and attach its certificate (PDF). A Master’s degree or higher in a relevant field — banking, finance, law, economics and the like — is required to be eligible.',
+      placement: 'top',
+    },
+    {
+      selector: '[data-tour="professional"]',
+      title: 'Professional certificates',
+      body: 'Optional — list any professional qualifications (e.g. CPA, CFA) and attach each certificate alongside it.',
+      placement: 'top',
+    },
+  ],
+  2: [
+    {
+      selector: '[data-tour="employment"]',
+      title: 'Employment history',
+      body: 'List your positions, most recent first, and attach a supporting document — an experience letter or contract — for each. A minimum of ten (10) years of professional experience is required.',
+      placement: 'top',
+    },
+  ],
+  3: [
+    {
+      selector: '[data-tour="boards"]',
+      title: 'Board experience',
+      body: 'This section is optional, but it strengthens your evaluation. Add any board or governance roles you have held.',
+      placement: 'top',
+    },
+    {
+      selector: '[data-tour="expertise"]',
+      title: 'Your expertise',
+      body: 'Select the areas where you bring depth — these help the Committee understand the perspective you would add to the Board.',
+      placement: 'top',
+    },
+  ],
+  4: [
+    {
+      selector: '[data-tour="references"]',
+      title: 'Your references',
+      body: 'Provide at least two referees who can attest to your professional standing — each needs a name, email, and their relationship to you.',
+      placement: 'top',
+    },
+    {
+      selector: '[data-tour="conflicts"]',
+      title: 'Conflicts of interest',
+      body: 'Disclose anything that could affect your independence. Full, upfront disclosure is viewed favourably — it is assessed, not automatically disqualifying.',
+      placement: 'top',
+    },
+  ],
+  5: [
+    {
+      selector: '[data-tour="documents"]',
+      title: 'Supporting documents',
+      body: 'Upload the required documents (marked *) as PDFs — your CV, National ID or passport, and TIN. You can add more than one file per category.',
+      placement: 'top',
+    },
+  ],
+  6: [
+    {
+      selector: '[data-tour="declarations"]',
+      title: 'Independence declarations',
+      body: 'Answer Yes or No to each statement truthfully. If you answer Yes to any, a short written explanation is required for the Committee.',
+      placement: 'top',
+    },
+  ],
+  7: [
+    {
+      selector: '[data-tour="certify"]',
+      title: 'Certify & submit',
+      body: 'You’re on the final step. Review each section above — use the edit links to fix anything — then tick this declaration and click Submit. Once submitted, your application is final.',
+      placement: 'top',
+    },
+  ],
+};
+
+/** The set of step indices whose walkthrough the applicant has already seen. */
+function loadTourSeen(): Set<number> {
+  try {
+    const raw = localStorage.getItem(TOUR_KEY);
+    if (raw) return new Set<number>(JSON.parse(raw) as number[]);
+  } catch {
+    /* ignore */
+  }
+  return new Set<number>();
+}
 
 const STEPS = [
   { id: 'personal', label: 'Personal & Contact' },
@@ -128,6 +212,10 @@ export function Wizard() {
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  // Which sections' walkthroughs have already been shown (persisted per browser).
+  const tourSeen = useRef<Set<number> | null>(null);
+  if (tourSeen.current === null) tourSeen.current = loadTourSeen();
   const mainRef = useRef<HTMLDivElement>(null);
 
   // Latest form snapshot (saves read from here so debounced flushes see fresh data).
@@ -178,20 +266,23 @@ export function Wizard() {
         if (app.currentStep > 0 && app.currentStep < STEPS.length) setStepIndex(app.currentStep);
         if (app.maxStepSeen > 0 && app.maxStepSeen < STEPS.length) setMaxSeen(app.maxStepSeen);
         hydrated.current = true;
-        // First-time applicants on a fresh draft (still on step 1) get a one-time
-        // guided tour. Gated per browser; replayable via the "Guided tour" button.
-        try {
-          if ((app.currentStep ?? 0) === 0 && !localStorage.getItem(TOUR_KEY)) {
-            setTimeout(() => setTourOpen(true), 550);
-          }
-        } catch {
-          /* localStorage unavailable — skip the tour silently */
-        }
+        // Signals the per-section guided tour can start (see the effect below).
+        setLoaded(true);
       } catch {
         setLoadError('Could not load your application. Please retry.');
       }
     })();
   }, [navigate]);
+
+  // Show the contextual walkthrough the first time the applicant reaches a
+  // section (once per section, per browser). A short delay lets the step paint.
+  useEffect(() => {
+    if (!loaded || tourOpen) return;
+    const seen = tourSeen.current;
+    if (!seen || seen.has(stepIndex) || !TOUR_BY_STEP[stepIndex]?.length) return;
+    const t = setTimeout(() => setTourOpen(true), 450);
+    return () => clearTimeout(t);
+  }, [loaded, stepIndex, tourOpen]);
 
   // Persist current step + furthest-seen step to the server (debounced, silent).
   useEffect(() => {
@@ -495,16 +586,18 @@ export function Wizard() {
     if (stepIndex > 0) goTo(stepIndex - 1);
   }
 
-  /** Replay the guided tour — jump back to step 1 (its targets live there). */
+  /** Replay the walkthrough for the section the applicant is currently on. */
   function startTour() {
-    if (stepIndex !== 0) goTo(0);
-    setTourOpen(true);
+    if (TOUR_BY_STEP[stepIndex]?.length) setTourOpen(true);
   }
-  /** Close the tour and remember it's been seen (per browser). */
+  /** Close the tour and remember this section's walkthrough has been seen. */
   function finishTour() {
     setTourOpen(false);
+    const seen = tourSeen.current ?? new Set<number>();
+    seen.add(stepIndex);
+    tourSeen.current = seen;
     try {
-      localStorage.setItem(TOUR_KEY, '1');
+      localStorage.setItem(TOUR_KEY, JSON.stringify([...seen]));
     } catch {
       /* ignore */
     }
@@ -774,7 +867,9 @@ export function Wizard() {
         }
       />
     )}
-    {tourOpen && <OnboardingTour steps={TOUR_STEPS} onClose={finishTour} />}
+    {tourOpen && TOUR_BY_STEP[stepIndex]?.length ? (
+      <OnboardingTour key={stepIndex} steps={TOUR_BY_STEP[stepIndex]} onClose={finishTour} />
+    ) : null}
     </>
   );
 }

@@ -118,7 +118,7 @@ export function StepReview({ form, documents, certified, onCertify, goTo, errors
       </Summ>
 
       {/* Formal declaration — keep this legal copy verbatim. */}
-      <div className="certify">
+      <div className="certify" data-tour="certify">
         <div className="certify-h">
           <ShieldCheck size={17} /> Declaration
         </div>
