@@ -109,26 +109,29 @@ export function Wizard() {
         setReference(app.reference);
         setCertified(app.certified);
         const f = hydrate(app);
+        // Fetch the account's contact details (only when the application doesn't
+        // already have them) and the document list in parallel — they're
+        // independent, so don't run them as a serial waterfall on mount.
+        const needContact = !f.email || !f.phone;
+        const [me, docs] = await Promise.all([
+          needContact ? authApi.me().catch(() => null) : Promise.resolve(null),
+          documentsApi.list(app.id),
+        ]);
         // Pre-fill contact details from the registered account if not yet entered,
-        // and persist so it's saved with the application.
-        if (!f.email || !f.phone) {
-          try {
-            const me = await authApi.me();
-            if (!f.email && me.email) {
-              f.email = me.email;
-              void applicationsApi.patch(app.id, { email: me.email }).catch(() => undefined);
-            }
-            if (!f.phone && me.phone) {
-              f.phone = me.phone;
-              void applicationsApi.patch(app.id, { phone: me.phone }).catch(() => undefined);
-            }
-          } catch {
-            /* non-fatal */
+        // and persist so they're saved with the application.
+        if (me) {
+          if (!f.email && me.email) {
+            f.email = me.email;
+            void applicationsApi.patch(app.id, { email: me.email }).catch(() => undefined);
+          }
+          if (!f.phone && me.phone) {
+            f.phone = me.phone;
+            void applicationsApi.patch(app.id, { phone: me.phone }).catch(() => undefined);
           }
         }
         formRef.current = f;
         setForm(f);
-        setDocuments(await documentsApi.list(app.id));
+        setDocuments(docs);
         // Resume where they left off — persisted server-side, so it syncs across
         // browsers/devices (not just this browser's localStorage).
         if (app.currentStep > 0 && app.currentStep < STEPS.length) setStepIndex(app.currentStep);

@@ -64,6 +64,7 @@ export function AdminDashboard() {
   const [reviewers, setReviewers] = useState<{ id: string; name: string; label: string }[]>([]);
   const [poolTotal, setPoolTotal] = useState(0);
   const [q, setQ] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
   const [statusLabel, setStatusLabel] = useState('All statuses');
   const [sortLabel, setSortLabel] = useState('Sort: Date submitted');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -80,7 +81,7 @@ export function AdminDashboard() {
   async function reload() {
     const [s, list, cycle] = await Promise.all([
       adminApi.stats(),
-      adminApi.list({ query: q, status: STATUS_VALUE[statusLabel], sort: SORT_VALUE[sortLabel] }),
+      adminApi.list({ query: debouncedQ, status: STATUS_VALUE[statusLabel], sort: SORT_VALUE[sortLabel] }),
       adminApi.cycle(),
     ]);
     setStats(s);
@@ -97,10 +98,17 @@ export function AdminDashboard() {
     setRefreshKey((k) => k + 1);
   }
 
+  // Debounce the search box so typing doesn't fire the 3-call reload on every
+  // keystroke; the status/sort dropdowns still apply immediately.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
   useEffect(() => {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, statusLabel, sortLabel]);
+  }, [debouncedQ, statusLabel, sortLabel]);
 
   return (
     <div className="page">

@@ -14,6 +14,13 @@ export default defineConfig(({ mode }) => {
   };
   return {
     plugins: [react()],
+    build: {
+      // Never inline assets as data URIs. Without this, Vite inlines the ~400
+      // small country-flag SVGs from flag-icons straight into the stylesheet,
+      // bloating the render-blocking CSS to ~450 KB on every page. At 0 each flag
+      // stays a separate file the browser fetches lazily only when it's shown.
+      assetsInlineLimit: 0,
+    },
     server: { port: 5173, proxy },
     // `vite preview` serves the production build (import.meta.env.PROD=true) —
     // proxy /api the same way so the built app can be exercised end-to-end.

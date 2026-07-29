@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
 import { COUNTRIES_FULL, countryCode } from '../lib/countries';
+// Flag stylesheet is loaded here (the only place flags render) rather than
+// globally, so landing/sign-in/wizard don't pull it into their critical CSS.
+import 'flag-icons/css/flag-icons.min.css';
 
 interface Props {
   value: string;
