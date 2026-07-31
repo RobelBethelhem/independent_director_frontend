@@ -23,6 +23,8 @@ export function homeFor(role: string): string {
       return '/audit';
     case 'recommender':
       return '/recommend';
+    case 'support':
+      return '/support';
     default:
       return '/apply';
   }

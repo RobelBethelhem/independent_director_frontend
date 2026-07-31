@@ -1,6 +1,6 @@
 /** Mirrors of the backend enums + DTO shapes the front end consumes. */
 
-export type UserRole = 'applicant' | 'admin' | 'reviewer' | 'auditor' | 'recommender';
+export type UserRole = 'applicant' | 'admin' | 'reviewer' | 'auditor' | 'recommender' | 'support';
 
 export interface Me {
   id: string;

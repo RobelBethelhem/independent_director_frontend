@@ -25,6 +25,11 @@ const AuditConsole = lazy(() => import('./pages/audit/AuditConsole').then((m) =>
 const RecommenderConsole = lazy(() =>
   import('./pages/recommend/RecommenderConsole').then((m) => ({ default: m.RecommenderConsole })),
 );
+const SupportConsole = lazy(() => import('./pages/support/SupportConsole').then((m) => ({ default: m.SupportConsole })));
+
+// The floating "Get help" chat is on every page (applicants + anonymous visitors).
+// Lazy so it never blocks first paint; it appears a moment after the page loads.
+const SupportWidget = lazy(() => import('./components/support/SupportWidget').then((m) => ({ default: m.SupportWidget })));
 
 /** Shown briefly while a lazily-loaded route chunk downloads. */
 function RouteFallback() {
@@ -84,9 +89,24 @@ export default function App() {
         <Route element={<ProtectedRoute roles={['recommender']} />}>
           <Route path="/recommend" element={<RecommenderConsole />} />
         </Route>
+        <Route element={<ProtectedRoute roles={['support', 'admin']} />}>
+          <Route path="/support" element={<SupportConsole />} />
+        </Route>
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  );
+}
+
+/** Root: the routed app plus the always-on support chat widget. */
+export function AppRoot() {
+  return (
+    <>
+      <App />
+      <Suspense fallback={null}>
+        <SupportWidget />
+      </Suspense>
+    </>
   );
 }
