@@ -25,9 +25,6 @@ export function Landing() {
               Independent Director. Save your progress and submit securely from anywhere.
             </p>
             <div className="actions">
-              <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth?mode=register')}>
-                Start your application
-              </button>
               <button className="btn btn-ghost btn-lg" onClick={() => navigate('/auth?mode=login')}>
                 Continue / track application
               </button>

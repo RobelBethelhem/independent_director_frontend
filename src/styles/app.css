@@ -2472,7 +2472,18 @@ table.dt tbody tr:last-child td {
 }
 
 @media (max-width: 680px) {
+  /* On phones the bottom-right FAB hides behind the browser's bottom toolbar
+     (only visible when scrolled to the very end), so pin it top-right, just
+     below the header, where it stays put and always reachable. */
+  .sup-fab {
+    top: calc(var(--header-h, 56px) + 10px);
+    bottom: auto;
+    right: 14px;
+    width: 50px;
+    height: 50px;
+  }
   .sup-panel {
+    top: 0;
     right: 0;
     bottom: 0;
     width: 100vw;
