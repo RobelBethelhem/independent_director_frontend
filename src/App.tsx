@@ -67,7 +67,7 @@ export default function App() {
         <Route element={<ProtectedRoute ignorePasswordChange />}>
           <Route path="/change-password" element={<ChangePassword />} />
         </Route>
-        <Route element={<ProtectedRoute roles={['admin', 'reviewer', 'auditor', 'recommender']} />}>
+        <Route element={<ProtectedRoute roles={['admin', 'reviewer', 'auditor', 'recommender', 'support']} />}>
           <Route path="/security" element={<Security />} />
         </Route>
         <Route element={<ProtectedRoute roles={['applicant']} />}>

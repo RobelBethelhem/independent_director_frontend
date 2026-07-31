@@ -4,7 +4,7 @@ import { KeyRound, ShieldCheck } from 'lucide-react';
 import { authApi } from '../lib/auth-api';
 import { useAuth } from '../auth/AuthContext';
 import { HttpError } from '../lib/api';
-import { Field, Input } from '../components/ui';
+import { Field, PasswordInput } from '../components/ui';
 import { PASSWORD_HINT, validatePassword } from '../lib/password';
 import { homeFor } from '../lib/routes';
 
@@ -59,8 +59,7 @@ export function ChangePassword() {
 
         <form onSubmit={submit} className="card" style={{ padding: 22, display: 'grid', gap: 14 }}>
           <Field label={forced ? 'Temporary password' : 'Current password'} required>
-            <Input
-              type="password"
+            <PasswordInput
               value={current}
               autoFocus
               onChange={(e) => setCurrent(e.target.value)}
@@ -68,10 +67,10 @@ export function ChangePassword() {
             />
           </Field>
           <Field label="New password" required hint={PASSWORD_HINT}>
-            <Input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="Choose a new password" />
+            <PasswordInput value={next} onChange={(e) => setNext(e.target.value)} placeholder="Choose a new password" />
           </Field>
           <Field label="Confirm new password" required>
-            <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Re-enter the new password" />
+            <PasswordInput value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Re-enter the new password" />
           </Field>
           {error && <div className="errmsg">{error}</div>}
           <button className="btn btn-primary" disabled={busy} type="submit">

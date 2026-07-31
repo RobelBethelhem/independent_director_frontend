@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import type {
   InputHTMLAttributes,
   ReactNode,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from 'react';
-import { X } from 'lucide-react';
+import { Eye, EyeOff, X } from 'lucide-react';
 
 /** Brand logo — the same transparent PNG used in the prototype. */
 export function Logo({ knockout = false, height = 34 }: { knockout?: boolean; height?: number }) {
@@ -59,6 +60,29 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean };
 
 export function Input({ invalid, className, ...rest }: InputProps) {
   return <input className={`inp${invalid ? ' err' : ''}${className ? ` ${className}` : ''}`} {...rest} />;
+}
+
+/** Password field with a show/hide eye toggle, so a mistyped password can be checked. */
+export function PasswordInput({ invalid, className, ...rest }: Omit<InputProps, 'type'>) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="pw-wrap">
+      <input
+        {...rest}
+        type={show ? 'text' : 'password'}
+        className={`inp pw-inp${invalid ? ' err' : ''}${className ? ` ${className}` : ''}`}
+      />
+      <button
+        type="button"
+        className="pw-toggle"
+        onClick={() => setShow((s) => !s)}
+        aria-label={show ? 'Hide password' : 'Show password'}
+        tabIndex={-1}
+      >
+        {show ? <EyeOff size={17} /> : <Eye size={17} />}
+      </button>
+    </div>
+  );
 }
 
 type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & { invalid?: boolean };

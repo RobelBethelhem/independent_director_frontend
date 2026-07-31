@@ -4,7 +4,7 @@ import { ShieldCheck, ShieldOff, Smartphone } from 'lucide-react';
 import { authApi } from '../lib/auth-api';
 import { useAuth } from '../auth/AuthContext';
 import { HttpError } from '../lib/api';
-import { Field, Input } from '../components/ui';
+import { Field, Input, PasswordInput } from '../components/ui';
 
 type SetupStep = 'idle' | 'scanning';
 
@@ -108,7 +108,7 @@ export function Security() {
               To disable it, confirm your password and a current code from your authenticator app.
             </p>
             <Field label="Password" required>
-              <Input type="password" value={disablePassword} onChange={(e) => setDisablePassword(e.target.value)} placeholder="Your current password" />
+              <PasswordInput value={disablePassword} onChange={(e) => setDisablePassword(e.target.value)} placeholder="Your current password" />
             </Field>
             <Field label="Authenticator code" required>
               <Input

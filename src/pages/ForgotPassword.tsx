@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../lib/auth-api';
 import { HttpError } from '../lib/api';
-import { Field, Input, Logo } from '../components/ui';
+import { Field, Input, Logo, PasswordInput } from '../components/ui';
 
 /** Two-phase reset: request an emailed code, then set a new password with it. */
 export function ForgotPassword() {
@@ -71,7 +71,7 @@ export function ForgotPassword() {
               <Input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" />
             </Field>
             <Field label="New password" required hint="Min 8 characters">
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} />
             </Field>
             {error && <div className="errmsg">{error}</div>}
             <button className="btn btn-primary btn-block btn-lg" disabled={busy} type="submit">

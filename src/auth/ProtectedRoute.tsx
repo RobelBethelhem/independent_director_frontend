@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { homeFor } from '../lib/routes';
 import type { UserRole } from '../lib/types';
 
 /**
@@ -29,7 +30,9 @@ export function ProtectedRoute({
     return <Navigate to="/change-password" replace />;
   }
   if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+    // A signed-in user on a route their role can't see goes to their own home,
+    // not the public landing (which looked like a bug for the support role).
+    return <Navigate to={homeFor(user.role)} replace />;
   }
   return <Outlet />;
 }

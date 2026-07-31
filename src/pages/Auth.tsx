@@ -8,7 +8,7 @@ import { isLoginChallenge, type LoginResult } from '../lib/types';
 import { PASSWORD_HINT, validatePassword } from '../lib/password';
 import { homeFor } from '../lib/routes';
 import { MANDATORY_REQUIREMENTS, NBE_PROCLAMATION_LABEL, NBE_PROCLAMATION_URL, phoneError } from '../lib/constants';
-import { Field, Input, Logo } from '../components/ui';
+import { Field, Input, Logo, PasswordInput } from '../components/ui';
 
 type Mode = 'register' | 'login';
 type Step = 'form' | 'otp' | 'twofactor' | 'conflict';
@@ -394,8 +394,7 @@ export function Auth() {
                   hint={mode === 'register' ? PASSWORD_HINT : undefined}
                   error={errors.password}
                 >
-                  <Input
-                    type="password"
+                  <PasswordInput
                     value={password}
                     invalid={!!errors.password}
                     onChange={(e) => setPassword(e.target.value)}

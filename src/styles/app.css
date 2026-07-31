@@ -205,6 +205,32 @@
 .inp::placeholder {
   color: var(--ink-4);
 }
+/* Password field + show/hide eye toggle. */
+.pw-wrap {
+  position: relative;
+}
+.pw-inp {
+  padding-right: 44px;
+}
+.pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--ink-3);
+  border-radius: 7px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.pw-toggle:hover {
+  color: var(--ink);
+  background: var(--paper-2);
+}
 .inp:focus {
   border-color: var(--brand);
   box-shadow: 0 0 0 3px var(--brand-tint);
