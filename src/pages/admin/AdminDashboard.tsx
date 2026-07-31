@@ -8,6 +8,7 @@ import {
   Columns3,
   FileText,
   Flag,
+  Headset,
   MapPin,
   Rows3,
   ScrollText,
@@ -30,6 +31,7 @@ import { AdminBoard } from './AdminBoard';
 import { ReviewersModal } from './ReviewersModal';
 import { AuditorsModal } from './AuditorsModal';
 import { RecommendersModal } from './RecommendersModal';
+import { SupportAgentsModal } from './SupportAgentsModal';
 import { ReviewSettingsModal } from './ReviewSettingsModal';
 import { BlockedIpsModal } from './BlockedIpsModal';
 
@@ -73,6 +75,7 @@ export function AdminDashboard() {
   const [reviewersOpen, setReviewersOpen] = useState(false);
   const [auditorsOpen, setAuditorsOpen] = useState(false);
   const [recommendersOpen, setRecommendersOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const [blockedOpen, setBlockedOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [statusLocked, setStatusLocked] = useState(false);
@@ -128,6 +131,9 @@ export function AdminDashboard() {
             </button>
             <button className="btn btn-ghost" onClick={() => setRecommendersOpen(true)}>
               <Send size={17} /> Recommenders
+            </button>
+            <button className="btn btn-ghost" onClick={() => setSupportOpen(true)}>
+              <Headset size={17} /> Support agents
             </button>
             <button className="btn btn-ghost" onClick={() => setSettingsOpen(true)}>
               <CalendarClock size={17} /> Review settings
@@ -316,6 +322,7 @@ export function AdminDashboard() {
       {reviewersOpen && <ReviewersModal onClose={() => setReviewersOpen(false)} />}
       {auditorsOpen && <AuditorsModal onClose={() => setAuditorsOpen(false)} />}
       {recommendersOpen && <RecommendersModal onClose={() => setRecommendersOpen(false)} />}
+      {supportOpen && <SupportAgentsModal onClose={() => setSupportOpen(false)} />}
       {blockedOpen && <BlockedIpsModal onClose={() => setBlockedOpen(false)} />}
       {settingsOpen && <ReviewSettingsModal onClose={() => setSettingsOpen(false)} onChanged={refresh} />}
     </div>

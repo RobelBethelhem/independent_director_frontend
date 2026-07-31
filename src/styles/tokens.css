@@ -71,6 +71,11 @@ html,
 body {
   margin: 0;
   padding: 0;
+  /* Never scroll sideways on mobile (a stray-wide element would otherwise let
+     the page pan horizontally, hiding the fixed help button off to the side).
+     `clip` stops horizontal scroll without creating a scroll container, so it
+     doesn't break vertical flow or position:fixed. */
+  overflow-x: clip;
 }
 body {
   font-family: var(--sans);

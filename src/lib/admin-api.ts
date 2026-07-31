@@ -258,7 +258,10 @@ export const adminApi = {
   recommenders() {
     return api<StaffRow[]>('/admin/recommenders');
   },
-  createUser(body: { name: string; email: string; phone?: string; role: 'reviewer' | 'admin' | 'auditor' | 'recommender' }) {
+  supportAgents() {
+    return api<StaffRow[]>('/admin/support-agents');
+  },
+  createUser(body: { name: string; email: string; phone?: string; role: 'reviewer' | 'admin' | 'auditor' | 'recommender' | 'support' }) {
     return api<{ id: string; name: string | null; email: string; role: string; tempPassword: string }>(
       '/admin/users',
       { method: 'POST', body },
