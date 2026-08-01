@@ -1757,6 +1757,7 @@ table.dt tbody tr:last-child td {
   color: var(--brand);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 .hero-card .kv {
   display: flex;
@@ -2817,6 +2818,36 @@ table.dt tbody tr:last-child td {
     font-size: 300px;
     right: -50px;
     top: -30px;
+  }
+
+  /* Application-window card + countdown fit comfortably on a phone. */
+  .hero-card {
+    padding: 22px 18px;
+  }
+  .hc-cd {
+    padding: 11px 12px;
+  }
+  .hc-cd-v {
+    font-size: 18px;
+  }
+  .hero-card .kv {
+    font-size: 13px;
+  }
+  .hero-card .kv .v {
+    text-align: right;
+    min-width: 0;
+  }
+  /* The requirements CTAs stack; the long NBE button wraps instead of overflowing. */
+  .reqs-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .reqs-actions .btn {
+    width: 100%;
+    justify-content: center;
+    white-space: normal;
+    height: auto;
+    padding: 13px 16px;
   }
 
   .grid-2,
