@@ -31,9 +31,11 @@ export function fmtCountdown(ms: number): string {
   const h = Math.floor((total % 86_400_000) / 3_600_000);
   const m = Math.floor((total % 3_600_000) / 60_000);
   const s = Math.floor((total % 60_000) / 1000);
-  if (d > 0) return `${d}d ${h}h ${m}m`;
+  // Always show the seconds so the countdown visibly ticks, even days out.
+  if (d > 0) return `${d}d ${h}h ${m}m ${s}s`;
   if (h > 0) return `${h}h ${m}m ${s}s`;
-  return `${m}m ${s}s`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
 }
 
 export interface AppWindowState {
@@ -57,7 +59,8 @@ export function useAppWindow(): AppWindowState {
     recruitmentApi.window().then(setWin).catch(() => undefined);
   }, []);
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    // 500 ms so the ticking seconds land promptly on each boundary.
+    const t = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(t);
   }, []);
 
