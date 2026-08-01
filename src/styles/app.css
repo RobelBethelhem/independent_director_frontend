@@ -1732,6 +1732,32 @@ table.dt tbody tr:last-child td {
   box-shadow: var(--sh-2);
   padding: 28px;
 }
+/* Live countdown to the application close date. */
+.hc-cd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 6px;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  background: var(--brand-tint);
+  border: 1px solid #f4cfd0;
+}
+.hc-cd-k {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--brand-700);
+}
+.hc-cd-v {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
 .hero-card .kv {
   display: flex;
   justify-content: space-between;

@@ -340,7 +340,7 @@ export function Auth() {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <FileText size={16} /> Read the NBE proclamation on independent directors
+                    <FileText size={16} /> Read the NBE directive on independent directors
                     <ExternalLink size={13} style={{ opacity: 0.7 }} />
                   </a>
                   <label className={`certify-check${agree ? ' on' : ''}`} onClick={() => setAgree((v) => !v)}>

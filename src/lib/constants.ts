@@ -171,7 +171,7 @@ export const MANDATORY_REQUIREMENTS: { title: string; detail: string }[] = [
 export const NBE_PROCLAMATION_LABEL =
   'NBE Directive No. SBB/89/2024 — Requirements for Persons with Significant Influence in a Bank';
 export const NBE_PROCLAMATION_URL =
-  'https://nbe.gov.et/files/sbb-89-2024-requirements-for-persons-with-significant-influence-in-a-bank/';
+  'https://nbe.gov.et/wp-content/uploads/2024/06/SBB892024-FREQUIREMENTS-FOR-PERSONS-WITH-SIGNIFICANT-INFLUENCE-IN-A-BANK.pdf';
 
 export const BOARD_TYPES = [
   'Listed company',
