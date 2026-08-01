@@ -8,6 +8,7 @@ import { isLoginChallenge, type LoginResult } from '../lib/types';
 import { PASSWORD_HINT, validatePassword } from '../lib/password';
 import { homeFor } from '../lib/routes';
 import { MANDATORY_REQUIREMENTS, NBE_PROCLAMATION_LABEL, NBE_PROCLAMATION_URL, phoneError } from '../lib/constants';
+import { fmtWhen, useAppWindow } from '../lib/useAppWindow';
 import { Field, Input, Logo, PasswordInput } from '../components/ui';
 
 type Mode = 'register' | 'login';
@@ -29,6 +30,7 @@ export function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setSession } = useAuth();
+  const appWin = useAppWindow();
 
   const rec = (location.state as RecommendState | null) ?? null;
 
@@ -142,6 +144,8 @@ export function Auth() {
   async function onSubmitForm(e: FormEvent) {
     e.preventDefault();
     setFormError(null);
+    // Registration is closed until the application window opens.
+    if (mode === 'register' && !appWin.canApply) return;
     if (!validateForm()) return;
     setBusy(true);
     try {
@@ -259,6 +263,9 @@ export function Auth() {
     }
   }
 
+  // Registration is only allowed while the application window is open.
+  const registerBlocked = mode === 'register' && !appWin.canApply;
+
   return (
     <div className="auth-wrap">
       {aside}
@@ -318,6 +325,17 @@ export function Auth() {
                 </button>
               </div>
 
+              {registerBlocked && (
+                <div className="indep-banner info" style={{ marginBottom: 18, fontSize: 13, alignItems: 'flex-start' }}>
+                  <TriangleAlert size={18} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                  <span>
+                    {appWin.phase === 'before'
+                      ? `Registration opens on ${fmtWhen(appWin.opensAt)}. You can sign in to track an existing application in the meantime.`
+                      : 'Applications have closed. You can still sign in to track an existing application.'}
+                  </span>
+                </div>
+              )}
+
               {showRequirementsGate ? (
                 <div className="auth-form" role="group" aria-label="Eligibility requirements">
                   <div className="indep-banner info" style={{ fontSize: 13, alignItems: 'flex-start' }}>
@@ -350,7 +368,7 @@ export function Auth() {
                   <button
                     type="button"
                     className="btn btn-primary btn-block btn-lg"
-                    disabled={!agree}
+                    disabled={!agree || registerBlocked}
                     onClick={() => setAcknowledged(true)}
                   >
                     Continue to create account
@@ -413,7 +431,7 @@ export function Auth() {
 
                 {formError && <div className="errmsg">{formError}</div>}
 
-                <button className="btn btn-primary btn-block btn-lg" disabled={busy} type="submit">
+                <button className="btn btn-primary btn-block btn-lg" disabled={busy || registerBlocked} type="submit">
                   {busy ? 'Please wait…' : mode === 'register' ? 'Create account' : 'Sign in'}
                 </button>
 

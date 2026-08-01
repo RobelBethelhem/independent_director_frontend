@@ -1,33 +1,7 @@
-import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, ExternalLink, FileText, Globe, Save, ShieldCheck } from 'lucide-react';
 import { MANDATORY_REQUIREMENTS, NBE_PROCLAMATION_LABEL, NBE_PROCLAMATION_URL } from '../lib/constants';
-import { recruitmentApi, type AppWindow } from '../lib/recruitment-api';
-
-/** Default application-open date shown on the landing (the backend tracks only
- *  the close date, which the admin manages). */
-const APP_OPENS_LABEL = 'Aug 3, 2026 · 12:00 AM';
-
-function fmtCloseDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function fmtCountdown(ms: number): string {
-  const total = Math.max(0, ms);
-  const d = Math.floor(total / 86_400_000);
-  const h = Math.floor((total % 86_400_000) / 3_600_000);
-  const m = Math.floor((total % 3_600_000) / 60_000);
-  const s = Math.floor((total % 60_000) / 1000);
-  if (d > 0) return `${d}d ${h}h ${m}m`;
-  if (h > 0) return `${h}h ${m}m ${s}s`;
-  return `${m}m ${s}s`;
-}
+import { fmtCountdown, fmtDay, fmtWhen, useAppWindow } from '../lib/useAppWindow';
 
 /**
  * Public landing (Applicant.Landing). Hero + info card + 3-up feature row.
@@ -35,20 +9,7 @@ function fmtCountdown(ms: number): string {
  */
 export function Landing() {
   const navigate = useNavigate();
-  const [win, setWin] = useState<AppWindow | null>(null);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    recruitmentApi.window().then(setWin).catch(() => undefined);
-  }, []);
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const closeAt = win ? new Date(win.submissionCloseAt).getTime() : null;
-  const remaining = closeAt !== null ? closeAt - now : null;
-  const isOpen = win ? win.acceptingApplications && remaining !== null && remaining > 0 : true;
+  const w = useAppWindow();
 
   return (
     <div className="fade-up">
@@ -74,22 +35,31 @@ export function Landing() {
           </div>
 
           <aside className="hero-card">
-            <div className="eyebrow" style={{ color: isOpen ? 'var(--ok)' : 'var(--brand)' }}>
-              {isOpen ? 'Application window open' : 'Applications closed'}
+            <div
+              className="eyebrow"
+              style={{ color: w.phase === 'open' ? 'var(--ok)' : w.phase === 'before' ? 'var(--brand-700)' : 'var(--brand)' }}
+            >
+              {w.phase === 'open' ? 'Application window open' : w.phase === 'before' ? 'Applications open soon' : 'Applications closed'}
             </div>
-            {isOpen && remaining !== null && (
+            {w.phase === 'before' && w.remainingToOpen !== null && (
+              <div className="hc-cd">
+                <span className="hc-cd-k">Opens in</span>
+                <span className="hc-cd-v">{fmtCountdown(w.remainingToOpen)}</span>
+              </div>
+            )}
+            {w.phase === 'open' && w.remainingToClose !== null && (
               <div className="hc-cd">
                 <span className="hc-cd-k">Closes in</span>
-                <span className="hc-cd-v">{fmtCountdown(remaining)}</span>
+                <span className="hc-cd-v">{fmtCountdown(w.remainingToClose)}</span>
               </div>
             )}
             <div className="kv">
               <span className="k">Opens</span>
-              <span className="v">{APP_OPENS_LABEL}</span>
+              <span className="v">{fmtWhen(w.opensAt)}</span>
             </div>
             <div className="kv">
               <span className="k">Closes</span>
-              <span className="v">{win ? fmtCloseDate(win.submissionCloseAt) : '—'}</span>
+              <span className="v">{w.closesAt !== null ? fmtWhen(w.closesAt) : '—'}</span>
             </div>
             <div className="kv">
               <span className="k">Eligibility</span>
@@ -141,10 +111,22 @@ export function Landing() {
             <FileText size={17} /> Read the NBE directive on independent directors
             <ExternalLink size={14} style={{ opacity: 0.7 }} />
           </a>
-          <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth?mode=register')}>
-            I meet these requirements — start
-          </button>
+          {w.canApply ? (
+            <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth?mode=register')}>
+              I meet these requirements — start
+            </button>
+          ) : (
+            <button className="btn btn-primary btn-lg" disabled>
+              {w.phase === 'before' ? `Opens ${fmtDay(w.opensAt)}` : 'Applications closed'}
+            </button>
+          )}
         </div>
+        {w.phase === 'before' && (
+          <p className="reqs-ref">
+            Registration opens on <b>{fmtWhen(w.opensAt)}</b>. Review the requirements now — you can create your account the
+            moment the window opens.
+          </p>
+        )}
         <p className="reqs-ref">
           Governing regulation: <b>{NBE_PROCLAMATION_LABEL}</b>.
         </p>
