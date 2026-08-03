@@ -2228,6 +2228,11 @@ table.dt tbody tr:last-child td {
 }
 .sup-body {
   flex: 1;
+  /* min-height:0 lets this flex child shrink below its content so it becomes a
+     real scroll area — without it the message list grows to fit every message
+     and shoves the composer off the bottom of the panel (the "input field not
+     showing / had to zoom out" bug). */
+  min-height: 0;
   overflow-y: auto;
   padding: 16px;
   display: flex;
@@ -2408,7 +2413,10 @@ table.dt tbody tr:last-child td {
   grid-template-columns: 320px 1fr;
   gap: 0;
   height: calc(100vh - 220px);
-  min-height: 460px;
+  /* Keep this modest: a large min-height forces the console taller than the
+     viewport on shorter screens (e.g. laptops at 125% Windows scaling), which
+     pushed the reply box below the fold and made agents zoom out to reach it. */
+  min-height: 340px;
   border: 1px solid var(--line-2);
   border-radius: 14px;
   overflow: hidden;
@@ -2494,6 +2502,9 @@ table.dt tbody tr:last-child td {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* min-height:0 stops this column from growing past its grid cell when a
+     conversation is long — that overgrowth was clipping the composer. */
+  min-height: 0;
 }
 .sup-conv-head {
   padding: 14px 18px;
@@ -2506,6 +2517,10 @@ table.dt tbody tr:last-child td {
 }
 .sup-conv-body {
   flex: 1;
+  /* Same flex-scroll fix as .sup-body: without min-height:0 the message list
+     grows to its full content height instead of scrolling, so long chats only
+     showed the last few messages with no way to scroll up to the first ones. */
+  min-height: 0;
   overflow-y: auto;
   padding: 18px;
   display: flex;
@@ -2538,10 +2553,16 @@ table.dt tbody tr:last-child td {
   .sup-panel {
     top: 0;
     right: 0;
-    bottom: 0;
+    bottom: auto;
     width: 100vw;
+    /* dvh excludes the mobile browser's address bar, so the reply box stays on
+       screen. Plain 100vh counts the collapsible chrome and pushed the composer
+       below the visible area (the "input field not showing on mobile" bug). The
+       100vh line is the fallback for browsers without dvh support. */
     height: 100vh;
+    height: 100dvh;
     max-height: 100vh;
+    max-height: 100dvh;
     border-radius: 0;
   }
   .sup-console {

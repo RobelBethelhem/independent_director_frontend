@@ -81,6 +81,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         return;
       }
+      // Support agents live on the console waiting for chats, so they're exempt
+      // from the idle/absolute auto-logout — their session ends only on manual
+      // logout. The backend grants the same exemption at /auth/refresh so the
+      // token keeps refreshing (see auth.service.ts).
+      if (userRef.current.role === 'support') return;
       const now = Date.now();
       const lastActivity = sessionActivity.get();
       const startedAt = tokenStore.sessionStartedAt;

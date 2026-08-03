@@ -3,6 +3,7 @@ import { Headset, MessageSquare } from 'lucide-react';
 import { supportApi, type SupportMessage, type SupportThreadListItem } from '../../lib/support-api';
 import { SupportChatMessages } from '../../components/support/SupportChatMessages';
 import { SupportComposer } from '../../components/support/SupportComposer';
+import { notifyDesktop, playIncomingChime, requestNotifyPermission, unlockChime } from '../../lib/support-notify';
 
 function fmtWhen(iso: string | null): string {
   if (!iso) return '';
@@ -19,13 +20,73 @@ export function SupportConsole() {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const activeRef = useRef<string | null>(null);
   activeRef.current = activeId;
+  // Last seen "thread id → lastMessageAt" snapshot, so each poll can tell which
+  // conversations gained a new visitor message since the previous poll.
+  const prevSnapRef = useRef<Map<string, string>>(new Map());
+  const seededRef = useRef(false);
+  const titleRef = useRef('');
 
   const loadThreads = useCallback(async () => {
+    let list: SupportThreadListItem[];
     try {
-      setThreads(await supportApi.threads());
+      list = await supportApi.threads();
     } catch {
-      /* ignore */
+      return;
     }
+    setThreads(list);
+
+    // Alert the agent about newly-arrived visitor messages (chime + desktop
+    // notification + tab-title flash). Only messages sent by the visitor count
+    // — the agent's own replies must not ring their own bell.
+    const snap = new Map<string, string>();
+    let incoming: SupportThreadListItem | null = null;
+    for (const t of list) {
+      if (t.lastMessageAt) snap.set(t.id, t.lastMessageAt);
+      const changed = t.lastMessageAt != null && t.lastMessageAt !== prevSnapRef.current.get(t.id);
+      if (changed && t.lastMessageBy === 'user' && !incoming) incoming = t;
+    }
+    // seededRef skips the very first load so opening the console doesn't ring
+    // for every conversation already sitting in the list.
+    if (seededRef.current && incoming) {
+      playIncomingChime();
+      notifyDesktop(
+        incoming.isGuest ? 'New message from a visitor' : `New message from ${incoming.displayName}`,
+        incoming.preview ?? 'Open the support console to reply.',
+      );
+      if (document.hidden && titleRef.current) document.title = '🔔 New support message';
+    }
+    prevSnapRef.current = snap;
+    seededRef.current = true;
+  }, []);
+
+  // Unlock the chime + request desktop-notification permission on the agent's
+  // first interaction (browsers require a user gesture for both).
+  useEffect(() => {
+    const onGesture = () => {
+      unlockChime();
+      requestNotifyPermission();
+    };
+    window.addEventListener('pointerdown', onGesture, { once: true });
+    window.addEventListener('keydown', onGesture, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', onGesture);
+      window.removeEventListener('keydown', onGesture);
+    };
+  }, []);
+
+  // Restore the tab title once the agent looks back at the console.
+  useEffect(() => {
+    titleRef.current = document.title;
+    const restore = () => {
+      if (!document.hidden) document.title = titleRef.current;
+    };
+    document.addEventListener('visibilitychange', restore);
+    window.addEventListener('focus', restore);
+    return () => {
+      document.removeEventListener('visibilitychange', restore);
+      window.removeEventListener('focus', restore);
+      document.title = titleRef.current;
+    };
   }, []);
 
   const loadMessages = useCallback(async (id: string) => {
