@@ -30,10 +30,29 @@ export interface LoginChallenge {
   existingSession?: { ip: string | null; userAgent: string | null; at: string };
 }
 
-export type LoginResult = AuthSession | LoginChallenge;
+/** Returned mid-login when the password is right but the email was never
+ *  verified — a fresh OTP has been sent and the UI shows the verify screen. */
+export interface EmailVerificationRequired {
+  emailVerificationRequired: true;
+  email: string;
+  otpLength: number;
+  devCode?: string;
+}
+
+export type LoginResult = AuthSession | LoginChallenge | EmailVerificationRequired;
 
 export function isLoginChallenge(result: LoginResult): result is LoginChallenge {
   return 'challengeToken' in result;
+}
+
+export function isEmailVerificationRequired(result: LoginResult): result is EmailVerificationRequired {
+  return 'emailVerificationRequired' in result;
+}
+
+/** True only for a real, token-bearing session (not a challenge or a
+ *  verification-required response). */
+export function isAuthSession(result: LoginResult): result is AuthSession {
+  return 'accessToken' in result;
 }
 
 export type ApplicationStatus =

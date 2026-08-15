@@ -4,7 +4,7 @@ import { ArrowLeft, BadgeCheck, Check, CheckCircle2, ExternalLink, FileText, Lap
 import { useAuth, SESSION_END_REASON_KEY } from '../auth/AuthContext';
 import { authApi } from '../lib/auth-api';
 import { HttpError } from '../lib/api';
-import { isLoginChallenge, type LoginResult } from '../lib/types';
+import { isEmailVerificationRequired, isLoginChallenge, type LoginResult } from '../lib/types';
 import { PASSWORD_HINT, validatePassword } from '../lib/password';
 import { homeFor } from '../lib/routes';
 import { MANDATORY_REQUIREMENTS, NBE_PROCLAMATION_LABEL, NBE_PROCLAMATION_URL, phoneError } from '../lib/constants';
@@ -126,6 +126,18 @@ export function Auth() {
 
   /** Common handling for whatever authApi.login/verifyTotpLogin/confirmSessionAndLogin returns. */
   function handleLoginResult(result: LoginResult) {
+    if (isEmailVerificationRequired(result)) {
+      // Password was right but this email was never verified — a fresh code is
+      // on its way. Drop into the same OTP screen registration uses so they can
+      // finish verifying and get in, instead of hitting a dead-end error.
+      setEmail(result.email);
+      setOtpLength(result.otpLength);
+      setOtp(Array(result.otpLength).fill(''));
+      setDevCode(result.devCode ?? null);
+      setFormError('Your email wasn’t verified yet — enter the code we just sent to finish signing in.');
+      setStep('otp');
+      return;
+    }
     if (!isLoginChallenge(result)) {
       setSession(result);
       navigate(result.user.mustChangePassword ? '/change-password' : homeFor(result.user.role));

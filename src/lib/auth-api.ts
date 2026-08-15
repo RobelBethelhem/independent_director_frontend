@@ -1,6 +1,6 @@
 import { api, tokenStore, HttpError } from './api';
 import type { AuthSession, LoginResult, Me } from './types';
-import { isLoginChallenge } from './types';
+import { isAuthSession } from './types';
 
 /**
  * After a login response hands us tokens, immediately prove them against the
@@ -58,7 +58,7 @@ export const authApi = {
       body: input,
       auth: false,
     });
-    if (!isLoginChallenge(result)) {
+    if (isAuthSession(result)) {
       tokenStore.set(result, { fresh: true });
       await validateSession();
     }
@@ -71,7 +71,7 @@ export const authApi = {
       body: input,
       auth: false,
     });
-    if (!isLoginChallenge(result)) {
+    if (isAuthSession(result)) {
       tokenStore.set(result, { fresh: true });
       await validateSession();
     }
