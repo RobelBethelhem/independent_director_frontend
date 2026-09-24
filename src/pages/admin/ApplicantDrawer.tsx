@@ -31,6 +31,7 @@ const STATUSES: { value: string; label: string }[] = [
   { value: 'shortlisted', label: 'Shortlisted' },
   { value: 'not_selected', label: 'Not Selected' },
   { value: 'selected', label: 'Selected' },
+  { value: 'reserve', label: 'Reserve' },
 ];
 
 const fullName = (a: AdminDetail) => [a.title, a.firstName, a.middleName, a.lastName].filter(Boolean).join(' ');

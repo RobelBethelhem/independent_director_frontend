@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarClock, CheckCircle2, MessageSquareText, RotateCw, Send, TriangleAlert, UserMinus, UserPlus } from 'lucide-react';
+import { CalendarClock, CheckCircle2, FileSpreadsheet, MessageSquareText, RotateCw, Send, TriangleAlert, UserMinus, UserPlus } from 'lucide-react';
 import { adminApi, type InterviewRanking, type InterviewRankRow, type InviteResult } from '../../lib/admin-api';
 import { HttpError } from '../../lib/api';
 import { Input, Modal, Textarea } from '../../components/ui';
@@ -253,6 +253,14 @@ export function InterviewModal({ onClose, onChanged }: { onClose: () => void; on
             </button>
             <button className="btn btn-ghost btn-sm" onClick={() => setSelected(new Set())} disabled={selIds.length === 0}>
               Clear ({selIds.length})
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={counts.listed === 0}
+              onClick={() => void adminApi.exportResults('interview')}
+              title="Results sheet for the interview list only"
+            >
+              <FileSpreadsheet size={14} /> Export list
             </button>
             <div style={{ flex: 1 }} />
             {(

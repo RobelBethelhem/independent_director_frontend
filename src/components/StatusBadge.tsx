@@ -8,6 +8,7 @@ const META: Record<ApplicationStatus, { label: string; cls: string }> = {
   shortlisted: { label: 'Shortlisted', cls: 'badge-short' },
   not_selected: { label: 'Not Selected', cls: 'badge-reject' },
   selected: { label: 'Selected', cls: 'badge-select' },
+  reserve: { label: 'Reserve', cls: 'badge-reserve' },
 };
 
 export function StatusBadge({ status }: { status: string }) {

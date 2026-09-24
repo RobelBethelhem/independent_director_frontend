@@ -62,7 +62,8 @@ export type ApplicationStatus =
   | 'info_requested'
   | 'shortlisted'
   | 'not_selected'
-  | 'selected';
+  | 'selected'
+  | 'reserve';
 
 export interface EducationEntry {
   id?: string;

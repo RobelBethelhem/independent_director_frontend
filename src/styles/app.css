@@ -1470,6 +1470,7 @@ table.dt tbody tr:last-child td {
 .badge-short { color: var(--st-short); background: #e4f1ea; }
 .badge-info { color: var(--st-info); background: #fbeadf; }
 .badge-reject { color: var(--st-reject); background: #f4e6e6; }
+.badge-reserve { color: #7a5a12; background: #f6ecd2; }
 .badge-select { color: #fff; background: var(--brand); }
 
 /* ---------- Success ---------- */

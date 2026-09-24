@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BarChart3, CalendarClock, ChevronRight, Clock, Columns3, FileText, Flag, Headset, MapPin, Rows3, ScrollText, Search, Send, ShieldBan, ShieldCheck, Star, Users, UsersRound, Mic, ChevronLeft } from 'lucide-react';
+import { BarChart3, CalendarClock, ChevronRight, Clock, Columns3, FileText, Flag, Headset, MapPin, Rows3, ScrollText, Search, Send, ShieldBan, ShieldCheck, Star, Users, UsersRound, Mic, ChevronLeft, FileSpreadsheet } from 'lucide-react';
 import { adminApi, type AdminApplicant, type AdminStats } from '../../lib/admin-api';
 import { Avatar, Select, Stat } from '../../components/ui';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -25,6 +25,7 @@ const STATUS_OPTIONS = [
   'Shortlisted',
   'Not Selected',
   'Selected',
+  'Reserve',
 ];
 const STATUS_VALUE: Record<string, string> = {
   'All statuses': 'all',
@@ -34,6 +35,7 @@ const STATUS_VALUE: Record<string, string> = {
   Shortlisted: 'shortlisted',
   'Not Selected': 'not_selected',
   Selected: 'selected',
+  Reserve: 'reserve',
 };
 const SORT_OPTIONS = ['Sort: Date submitted', 'Sort: Score', 'Sort: Name'];
 const SORT_VALUE: Record<string, string> = {
@@ -52,6 +54,16 @@ export function AdminDashboard() {
   const [total, setTotal] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [interviewOpen, setInterviewOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  async function exportResults() {
+    setExporting(true);
+    try {
+      await adminApi.exportResults('all');
+    } finally {
+      setExporting(false);
+    }
+  }
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
   const [statusLabel, setStatusLabel] = useState('All statuses');
@@ -198,6 +210,14 @@ export function AdminDashboard() {
               {total === poolTotal ? `${total} applicants` : `${total} of ${poolTotal} match`}
             </span>
           )}
+          <button
+            className="btn btn-ghost btn-sm"
+            disabled={exporting}
+            onClick={() => void exportResults()}
+            title="Reference, Name, Document Average, Interview Average, Total Score, Status — opens in Excel"
+          >
+            <FileSpreadsheet size={15} /> {exporting ? 'Exporting…' : 'Export to Excel'}
+          </button>
           <div className="viewseg" role="tablist" title="Switch view">
             <button className={view === 'board' ? 'active' : ''} onClick={() => setView('board')}>
               <Columns3 size={15} /> Board

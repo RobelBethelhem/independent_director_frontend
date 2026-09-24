@@ -15,6 +15,7 @@ const STATUSES = [
   { v: 'shortlisted', l: 'Shortlisted' },
   { v: 'not_selected', l: 'Not Selected' },
   { v: 'selected', l: 'Selected' },
+  { v: 'reserve', l: 'Reserve' },
 ];
 
 const DEGREE_MIN = [

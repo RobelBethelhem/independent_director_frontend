@@ -292,6 +292,23 @@ export const adminApi = {
     a.remove();
     URL.revokeObjectURL(url);
   },
+  /** Results sheet (Reference, Name, Document/Interview averages, Total, Decision). */
+  async exportResults(scope: 'all' | 'interview' = 'all') {
+    const res = await fetch(`${API_BASE}/admin/applications/export-results?scope=${scope}`, {
+      headers: tokenStore.access ? { Authorization: `Bearer ${tokenStore.access}` } : {},
+    });
+    if (!res.ok) throw new Error('Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.download = `zemen-results${scope === 'interview' ? '-interview' : ''}-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
   reviewers() {
     return api<ReviewerRow[]>('/admin/reviewers');
   },

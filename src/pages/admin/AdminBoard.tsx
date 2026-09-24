@@ -13,6 +13,7 @@ const COLUMNS: { status: string; label: string }[] = [
   { status: 'info_requested', label: 'Information Requested' },
   { status: 'shortlisted', label: 'Shortlisted' },
   { status: 'selected', label: 'Selected' },
+  { status: 'reserve', label: 'Reserve' },
   { status: 'not_selected', label: 'Not Selected' },
 ];
 const LABELS: Record<string, string> = Object.fromEntries(COLUMNS.map((c) => [c.status, c.label]));
