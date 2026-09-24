@@ -19,17 +19,36 @@ import { DocumentPreview } from '../../components/DocumentPreview';
 import { SubmitConfirmModal } from '../../components/SubmitConfirmModal';
 import { GroupedDocs } from '../../components/GroupedDocs';
 import { CRITERIA, CRITERIA_GROUPS, DECLARATIONS, SCORE_MAX } from '../../lib/constants';
-import { fmtDate, fmtPeriod } from '../../lib/format';
+import { fmtDate, fmtDateTime, fmtPeriod } from '../../lib/format';
 
 interface Suggestion {
   value: number;
   rationale: string;
 }
 
-function computeScore(values: Record<string, number>): number {
+function computeScore(values: Record<string, number>, group?: 'document' | 'interview'): number {
   let total = 0;
-  for (const c of CRITERIA) total += ((values[c.id] || 0) / SCORE_MAX) * c.weight;
-  return Math.round(total);
+  for (const c of CRITERIA) if (!group || c.group === group) total += ((values[c.id] || 0) / SCORE_MAX) * c.weight;
+  return Math.round(total * 10) / 10;
+}
+
+const DOC_CRITERIA = CRITERIA.filter((c) => c.group === 'document');
+
+/** Why the Interview part can't be scored right now (null = it can). */
+function interviewNote(a: ReviewDossier): string | null {
+  if (a.canEditInterview) return null;
+  if (a.myReview.submitted) return 'Final — submitted.';
+  if (!a.interviewSelected) {
+    return a.interviewOpen
+      ? 'This candidate was not selected for interview.'
+      : 'Scored after the interview, only for candidates invited to interview.';
+  }
+  if (!a.interviewOpen) {
+    return a.interviewEndAt
+      ? `Opens once the interview period ends (${fmtDateTime(a.interviewEndAt)}).`
+      : 'Opens once the interview period ends (dates not set yet).';
+  }
+  return a.interviewBlockedReason;
 }
 
 const fullName = (a: ReviewDossier) => [a.title, a.firstName, a.middleName, a.lastName].filter(Boolean).join(' ');
@@ -135,14 +154,24 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
     );
   }
 
-  const live = computeScore(values);
+  const canDoc = a.canEditDocument;
+  const canIv = a.canEditInterview;
+  const editable = (group: 'document' | 'interview') => (group === 'document' ? canDoc : canIv);
+  const locked = !canDoc && !canIv; // nothing editable for this reviewer right now
+  // Stage 2 = final submission (all 8 criteria); stage 1 = document evaluation only.
+  const finalStage = canIv;
+  const docPts = computeScore(values, 'document');
+  const ivPts = computeScore(values, 'interview');
+  const live = Math.round(docPts + ivPts);
+  const docScoredCount = DOC_CRITERIA.filter((c) => values[c.id]).length;
   const allScored = CRITERIA.every((c) => values[c.id]);
   const scoredCount = CRITERIA.filter((c) => values[c.id]).length;
-  const locked = a.myReview.submitted; // submitted assessments are view-only
-  const hasSuggestions = Object.keys(suggestions).length > 0;
+  const readyToSubmit = finalStage ? allScored : docScoredCount === DOC_CRITERIA.length;
+  const hasSuggestions = Object.keys(suggestions).length > 0 && canDoc;
+  const ivNote = interviewNote(a);
 
   function applySuggestions() {
-    if (locked) return;
+    if (!canDoc) return;
     setValues((v) => {
       const next = { ...v };
       for (const [id_, s] of Object.entries(suggestions)) next[id_] = s.value;
@@ -153,8 +182,17 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
   async function save(submit: boolean) {
     setSaving(true);
     try {
-      await reviewApi.putScores(id, CRITERIA.filter((c) => values[c.id]).map((c) => ({ criterionId: c.id, value: values[c.id] })));
-      await reviewApi.putReview(id, { comment, shortlistRecommended: shortlist, submitted: submit });
+      // Only send the criteria this reviewer may edit right now — the server
+      // rejects e.g. interview scores before the interview stage opens.
+      await reviewApi.putScores(
+        id,
+        CRITERIA.filter((c) => values[c.id] && editable(c.group)).map((c) => ({ criterionId: c.id, value: values[c.id] })),
+      );
+      await reviewApi.putReview(id, {
+        comment,
+        shortlistRecommended: shortlist,
+        ...(submit ? (finalStage ? { submitted: true } : { submitDocument: true }) : {}),
+      });
       if (submit) onBack();
     } finally {
       setSaving(false);
@@ -174,8 +212,8 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
       )}
       {confirmOpen && (
         <SubmitConfirmModal
-          title="Reviewer Declaration"
-          confirmLabel="Submit assessment"
+          title={finalStage ? 'Reviewer Declaration — final submission' : 'Reviewer Declaration — Document Evaluation'}
+          confirmLabel={finalStage ? 'Final submit' : 'Submit document evaluation'}
           busy={saving}
           onConfirm={() => void save(true)}
           onClose={() => setConfirmOpen(false)}
@@ -184,6 +222,19 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
               <p style={{ marginTop: 0 }}>
                 I, the undersigned, hereby declare that I have reviewed the application of{' '}
                 <b>{fullName(a) || a.reference}</b> in my capacity as <b>Reviewer</b>.
+              </p>
+              <p>
+                {finalStage ? (
+                  <>
+                    This is my <b>final submission</b> — the Document Evaluation and the Interview scores. It cannot be
+                    changed afterwards.
+                  </>
+                ) : (
+                  <>
+                    I am submitting the <b>Document Evaluation (50%)</b>. It will be locked; the Interview part is scored
+                    later, after the interview period.
+                  </>
+                )}
               </p>
               <p>
                 I confirm that I have conducted the review objectively, independently, and to the best of my
@@ -274,19 +325,28 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
 
               {tab === 'score' && (
                 <div className="fade-in">
-                  {locked ? (
+                  {a.myReview.submitted ? (
                     <div className="indep-banner" style={{ background: 'var(--paper-2)', color: 'var(--ink-2)' }}>
-                      <Lock size={18} /> You have submitted this assessment. Your scores are final and shown
+                      <Lock size={18} /> You have made your final submission. Your scores are final and shown
                       read-only.
+                    </div>
+                  ) : locked && a.myReview.documentSubmitted ? (
+                    <div className="indep-banner" style={{ background: 'var(--paper-2)', color: 'var(--ink-2)' }}>
+                      <Lock size={18} /> Document Evaluation submitted. {ivNote}
+                    </div>
+                  ) : locked ? (
+                    <div className="indep-banner" style={{ background: 'var(--paper-2)', color: 'var(--ink-2)' }}>
+                      <Lock size={18} /> Scoring is closed for this candidate.
                     </div>
                   ) : (
                     <p style={{ fontSize: 13.5, color: 'var(--ink-2)', marginBottom: 12, lineHeight: 1.5 }}>
-                      Score each criterion from 1 to 10 per the NRC scoring guide. The weighted total updates
-                      automatically.
+                      {finalStage
+                        ? 'Interview stage — score the three Interview criteria, then make your final submission.'
+                        : 'Stage 1 — score the five Document Evaluation criteria (1–10 per the NRC scoring guide) and submit. The Interview part opens after the interview period.'}
                     </p>
                   )}
 
-                  {!locked && hasSuggestions && (
+                  {hasSuggestions && (
                     <div className="suggest-banner">
                       <Sparkles size={17} />
                       <div style={{ flex: 1 }}>
@@ -300,17 +360,29 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
                   )}
 
                   {CRITERIA_GROUPS.map((group) => (
-                    <div key={group.key} style={{ marginBottom: 8 }}>
-                      <div className="rubric-group-h">{group.label}</div>
+                    <div key={group.key} style={{ marginBottom: 8, opacity: editable(group.key) || a.myReview.submitted || (group.key === 'document' && a.myReview.documentSubmitted) ? 1 : 0.55 }}>
+                      <div className="rubric-group-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {group.label}
+                        {!editable(group.key) && <Lock size={12} />}
+                        {group.key === 'document' && a.myReview.documentSubmitted && (
+                          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ok)', textTransform: 'none', letterSpacing: 0 }}>
+                            Submitted · {docPts}/50
+                          </span>
+                        )}
+                      </div>
+                      {group.key === 'interview' && ivNote && !a.myReview.submitted && (
+                        <div className="muted" style={{ fontSize: 12, margin: '-2px 0 8px' }}>{ivNote}</div>
+                      )}
                       {CRITERIA.filter((c) => c.group === group.key).map((c) => {
                         const sug = suggestions[c.id];
+                        const rowLocked = !editable(c.group);
                         return (
                           <div key={c.id} className="score-row">
                             <div className="score-crit">
                               {c.label}
                               <div className="w">
                                 Weight {c.weight}%
-                                {!locked && sug && (
+                                {!rowLocked && sug && (
                                   <span className="suggest-hint" title={sug.rationale}>
                                     {' · '}
                                     <Sparkles size={11} /> suggests {sug.value}
@@ -323,7 +395,7 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
                                 <button
                                   key={n}
                                   className={`score-dot${(values[c.id] || 0) >= n ? ' on' : ''}`}
-                                  disabled={locked}
+                                  disabled={rowLocked}
                                   onClick={() => setValues({ ...values, [c.id]: n })}
                                 >
                                   {n}
@@ -504,7 +576,27 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
                   <span style={{ fontSize: 22, color: 'rgba(255,255,255,.5)' }}>/100</span>
                 </div>
                 <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.6)' }}>
-                  {locked ? 'Submitted · final' : allScored ? 'All criteria scored' : `${scoredCount} of ${CRITERIA.length} scored`}
+                  {a.myReview.submitted
+                    ? 'Submitted · final'
+                    : finalStage
+                      ? allScored
+                        ? 'All criteria scored — ready for final submit'
+                        : `${scoredCount} of ${CRITERIA.length} scored`
+                      : a.myReview.documentSubmitted
+                        ? 'Document Evaluation submitted'
+                        : `${docScoredCount} of ${DOC_CRITERIA.length} document criteria scored`}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 18, marginTop: 12, fontSize: 12 }}>
+                  <span>
+                    <span style={{ color: 'rgba(255,255,255,.55)' }}>Document </span>
+                    <b>{docPts}</b>
+                    <span style={{ color: 'rgba(255,255,255,.45)' }}>/50</span>
+                  </span>
+                  <span>
+                    <span style={{ color: 'rgba(255,255,255,.55)' }}>Interview </span>
+                    <b>{ivPts}</b>
+                    <span style={{ color: 'rgba(255,255,255,.45)' }}>/50</span>
+                  </span>
                 </div>
               </div>
               <div style={{ padding: 20 }}>
@@ -553,16 +645,21 @@ export function ReviewScreen({ id, onBack }: { id: string; onBack: () => void })
                   />
                 </Field>
                 {locked ? (
-                  <div className="muted" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, fontSize: 13, justifyContent: 'center' }}>
-                    <Lock size={14} /> Assessment submitted — locked.
+                  <div className="muted" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, fontSize: 13, justifyContent: 'center', textAlign: 'center' }}>
+                    <Lock size={14} style={{ flex: '0 0 auto' }} />
+                    {a.myReview.submitted
+                      ? 'Final submission made — locked.'
+                      : a.myReview.documentSubmitted
+                        ? 'Document Evaluation submitted — Interview opens after the interview period.'
+                        : 'Scoring is closed.'}
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                    <button className="btn btn-ghost" style={{ flex: 1 }} disabled={saving} onClick={() => void save(false)}>
-                      <Save size={16} /> Save draft
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+                    <button className="btn btn-primary" style={{ justifyContent: 'center' }} disabled={!readyToSubmit || saving} onClick={() => setConfirmOpen(true)}>
+                      <Check size={16} /> {finalStage ? 'Final submit' : 'Submit document evaluation'}
                     </button>
-                    <button className="btn btn-primary" style={{ flex: 1.4 }} disabled={!allScored || saving} onClick={() => setConfirmOpen(true)}>
-                      <Check size={16} /> Submit
+                    <button className="btn btn-ghost" style={{ justifyContent: 'center' }} disabled={saving} onClick={() => void save(false)}>
+                      <Save size={16} /> Save draft
                     </button>
                   </div>
                 )}

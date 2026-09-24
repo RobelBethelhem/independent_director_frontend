@@ -409,12 +409,21 @@ function EvaluationTab({ a }: { a: AdminDetail }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>{r.name}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>
-                    {r.submitted ? 'Submitted' : 'In progress'}
+                    {r.submitted
+                      ? 'Final submitted'
+                      : r.documentSubmitted
+                        ? `Document Evaluation submitted${r.documentScore != null ? ` · ${r.documentScore}/50` : ''}`
+                        : 'In progress'}
                     {r.shortlistRecommended && ' · recommends shortlist'}
                   </div>
                 </div>
                 {r.submitted && r.weightedScore != null ? (
-                  <span className={`scorepill ${scoreClass(r.weightedScore)}`}>{r.weightedScore}</span>
+                  <span className={`scorepill ${scoreClass(r.weightedScore)}`} title="Final (/100)">{r.weightedScore}</span>
+                ) : r.documentSubmitted && r.documentScore != null ? (
+                  <span className={`scorepill ${scoreClass(r.documentScore * 2)}`} title="Document Evaluation (/50)">
+                    {r.documentScore}
+                    <span style={{ fontSize: 9, opacity: 0.7 }}>/50</span>
+                  </span>
                 ) : (
                   <span className="scorepill none">—</span>
                 )}

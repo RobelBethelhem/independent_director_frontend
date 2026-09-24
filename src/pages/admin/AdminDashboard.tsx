@@ -1,25 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  BarChart3,
-  CalendarClock,
-  ChevronRight,
-  Clock,
-  Columns3,
-  FileText,
-  Flag,
-  Headset,
-  MapPin,
-  Rows3,
-  ScrollText,
-  Search,
-  Send,
-  ShieldBan,
-  ShieldCheck,
-  Star,
-  Users,
-  UsersRound,
-} from 'lucide-react';
+import { BarChart3, CalendarClock, ChevronRight, Clock, Columns3, FileText, Flag, Headset, MapPin, Rows3, ScrollText, Search, Send, ShieldBan, ShieldCheck, Star, Users, UsersRound, Mic, ChevronLeft } from 'lucide-react';
 import { adminApi, type AdminApplicant, type AdminStats } from '../../lib/admin-api';
 import { Avatar, Select, Stat } from '../../components/ui';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -28,6 +9,7 @@ import { scoreClass } from '../../lib/constants';
 import { ADMIN_REPORTS_PATH, ADMIN_SEARCH_PATH } from '../../lib/routes';
 import { ApplicantDrawer } from './ApplicantDrawer';
 import { AdminBoard } from './AdminBoard';
+import { InterviewModal } from './InterviewModal';
 import { ReviewersModal } from './ReviewersModal';
 import { AuditorsModal } from './AuditorsModal';
 import { RecommendersModal } from './RecommendersModal';
@@ -65,6 +47,11 @@ export function AdminDashboard() {
   const [items, setItems] = useState<AdminApplicant[]>([]);
   const [reviewers, setReviewers] = useState<{ id: string; name: string; label: string }[]>([]);
   const [poolTotal, setPoolTotal] = useState(0);
+  // Table pagination (the server pages 20 at a time).
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+  const [interviewOpen, setInterviewOpen] = useState(false);
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
   const [statusLabel, setStatusLabel] = useState('All statuses');
@@ -84,13 +71,15 @@ export function AdminDashboard() {
   async function reload() {
     const [s, list, cycle] = await Promise.all([
       adminApi.stats(),
-      adminApi.list({ query: debouncedQ, status: STATUS_VALUE[statusLabel], sort: SORT_VALUE[sortLabel] }),
+      adminApi.list({ query: debouncedQ, status: STATUS_VALUE[statusLabel], sort: SORT_VALUE[sortLabel], page }),
       adminApi.cycle(),
     ]);
     setStats(s);
     setItems(list.items);
     setReviewers(list.reviewers);
     setPoolTotal(list.poolTotal);
+    setTotal(list.total);
+    setPageSize(list.pageSize);
     setStatusLocked(cycle.statusLocked);
     setLockedUntil(cycle.reviewCloseAt);
   }
@@ -104,14 +93,21 @@ export function AdminDashboard() {
   // Debounce the search box so typing doesn't fire the 3-call reload on every
   // keystroke; the status/sort dropdowns still apply immediately.
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedQ(q), 300);
+    const t = setTimeout(() => {
+      setDebouncedQ(q);
+      setPage(1);
+    }, 300);
     return () => clearTimeout(t);
   }, [q]);
 
   useEffect(() => {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQ, statusLabel, sortLabel]);
+  }, [debouncedQ, statusLabel, sortLabel, page]);
+
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const firstRow = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const lastRow = Math.min(total, page * pageSize);
 
   return (
     <div className="page">
@@ -137,6 +133,9 @@ export function AdminDashboard() {
             </button>
             <button className="btn btn-ghost" onClick={() => setSettingsOpen(true)}>
               <CalendarClock size={17} /> Review settings
+            </button>
+            <button className="btn btn-ghost" onClick={() => setInterviewOpen(true)}>
+              <Mic size={17} /> Interview shortlist
             </button>
             <Link className="btn btn-ghost" to="/audit">
               <ScrollText size={17} /> Audit trail
@@ -175,13 +174,19 @@ export function AdminDashboard() {
             <>
               <Select
                 value={statusLabel}
-                onChange={(e) => setStatusLabel(e.target.value)}
+                onChange={(e) => {
+                  setStatusLabel(e.target.value);
+                  setPage(1);
+                }}
                 options={STATUS_OPTIONS}
                 style={{ maxWidth: 190 }}
               />
               <Select
                 value={sortLabel}
-                onChange={(e) => setSortLabel(e.target.value)}
+                onChange={(e) => {
+                  setSortLabel(e.target.value);
+                  setPage(1);
+                }}
                 options={SORT_OPTIONS}
                 style={{ maxWidth: 200 }}
               />
@@ -190,7 +195,7 @@ export function AdminDashboard() {
           <div style={{ flex: 1 }} />
           {view === 'table' && (
             <span className="muted" style={{ fontSize: 13 }}>
-              {items.length} of {poolTotal}
+              {total === poolTotal ? `${total} applicants` : `${total} of ${poolTotal} match`}
             </span>
           )}
           <div className="viewseg" role="tablist" title="Switch view">
@@ -239,7 +244,12 @@ export function AdminDashboard() {
                     E{i + 1}
                   </th>
                 ))}
-                <th style={{ textAlign: 'center' }}>Avg</th>
+                <th style={{ textAlign: 'center' }} title="Average Document Evaluation (stage 1), out of 50">
+                  Doc /50
+                </th>
+                <th style={{ textAlign: 'center' }} title="Average final score (Document + Interview), out of 100">
+                  Final
+                </th>
                 <th>Status</th>
                 <th></th>
               </tr>
@@ -275,17 +285,34 @@ export function AdminDashboard() {
                     <span style={{ fontSize: 13 }}>{fmtDate(a.submittedAt)}</span>
                   </td>
                   {reviewers.map((r, i) => {
-                    const sv = a.evaluatorScores[i] ?? null;
+                    const sv = a.evaluatorScores[i] ?? null; // final /100
+                    const dv = a.evaluatorDocScores?.[i] ?? null; // document /50
                     return (
                       <td key={r.id} style={{ textAlign: 'center' }}>
-                        {sv == null ? (
-                          <span className="muted">—</span>
+                        {sv != null ? (
+                          <span className={`scorepill ${scoreClass(sv)}`} style={{ minWidth: 34, padding: '3px 8px' }} title="Final (/100)">
+                            {sv}
+                          </span>
+                        ) : dv != null ? (
+                          <span
+                            className={`scorepill ${scoreClass(dv * 2)}`}
+                            style={{ minWidth: 34, padding: '3px 8px', opacity: 0.85 }}
+                            title="Document Evaluation only (/50)"
+                          >
+                            {dv}
+                            <span style={{ fontSize: 9, opacity: 0.7 }}>/50</span>
+                          </span>
                         ) : (
-                          <span className={`scorepill ${scoreClass(sv)}`} style={{ minWidth: 34, padding: '3px 8px' }}>{sv}</span>
+                          <span className="muted">—</span>
                         )}
                       </td>
                     );
                   })}
+                  <td style={{ textAlign: 'center' }}>
+                    <span className={`scorepill ${scoreClass(a.docScore == null ? null : a.docScore * 2)}`}>
+                      {a.docScore == null ? '—' : a.docScore}
+                    </span>
+                  </td>
                   <td style={{ textAlign: 'center' }}>
                     <span className={`scorepill ${scoreClass(a.score)}`} style={{ fontWeight: 800 }}>
                       {a.score == null ? '—' : a.score}
@@ -304,6 +331,35 @@ export function AdminDashboard() {
           {items.length === 0 && (
             <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)' }}>
               No applications match your filters.
+            </div>
+          )}
+          {total > 0 && (
+            <div className="pager">
+              <span className="muted" style={{ fontSize: 13 }}>
+                Showing <b>{firstRow}–{lastRow}</b> of <b>{total}</b>
+              </span>
+              <div className="pager-btns">
+                <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                  <ChevronLeft size={15} /> Previous
+                </button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    className={`btn btn-sm ${n === page ? 'btn-dark' : 'btn-ghost'}`}
+                    onClick={() => setPage(n)}
+                    aria-current={n === page ? 'page' : undefined}
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  className="btn btn-ghost btn-sm"
+                  disabled={page >= pageCount}
+                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                >
+                  Next <ChevronRight size={15} />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -325,6 +381,7 @@ export function AdminDashboard() {
       {supportOpen && <SupportAgentsModal onClose={() => setSupportOpen(false)} />}
       {blockedOpen && <BlockedIpsModal onClose={() => setBlockedOpen(false)} />}
       {settingsOpen && <ReviewSettingsModal onClose={() => setSettingsOpen(false)} onChanged={refresh} />}
+      {interviewOpen && <InterviewModal onClose={() => setInterviewOpen(false)} onChanged={refresh} />}
     </div>
   );
 }

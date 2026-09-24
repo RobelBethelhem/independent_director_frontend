@@ -18,8 +18,13 @@ export interface AdminApplicant {
   years: number | null;
   submittedAt: string | null;
   score: number | null;
-  /** Per-evaluator scores aligned to the committee order (null = not yet scored). */
+  /** Per-evaluator FINAL scores (/100) aligned to the committee order (null = no final yet). */
   evaluatorScores: (number | null)[];
+  /** Average Document Evaluation points (/50) — stage 1. */
+  docScore: number | null;
+  /** Per-evaluator Document Evaluation points (/50), committee order. */
+  evaluatorDocScores: (number | null)[];
+  interviewSelected: boolean;
 }
 
 export interface AdminListResponse {
@@ -48,6 +53,9 @@ export interface ActivityEvent {
 export interface EvaluationReviewer {
   name: string;
   submitted: boolean;
+  documentSubmitted?: boolean;
+  documentScore?: number | null;
+  interviewScore?: number | null;
   shortlistRecommended: boolean;
   weightedScore: number | null;
   scores: Record<string, number>;
@@ -67,7 +75,42 @@ export interface ReviewerRow {
   email: string;
   status: string;
   lastLoginAt: string | null;
+  /** Final (both-stage) submissions. */
   reviewsSubmitted: number;
+  /** Document Evaluations submitted (stage 1, incl. finals). */
+  documentsSubmitted: number;
+  /** False once the reviewer has submitted any evaluation. */
+  removable: boolean;
+}
+
+export interface InterviewRankRow {
+  id: string;
+  reference: string | null;
+  name: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  status: ApplicationStatus;
+  docScore: number | null;
+  docReviews: number;
+  rank: number | null;
+  interviewSelected: boolean;
+  inviteStatus: 'sent' | 'failed' | null;
+  inviteError: string | null;
+  invitedAt: string | null;
+}
+
+export interface InterviewRanking {
+  reviewerCount: number;
+  interviewStartAt: string | null;
+  interviewEndAt: string | null;
+  items: InterviewRankRow[];
+}
+
+export interface InviteResult {
+  total: number;
+  sent: number;
+  failed: { id: string; name: string; reason: string }[];
 }
 
 export interface StaffRow {
@@ -273,13 +316,34 @@ export const adminApi = {
       title: string;
       submissionCloseAt: string;
       reviewCloseAt: string | null;
+      interviewStartAt: string | null;
+      interviewEndAt: string | null;
+      interviewScoringOpen: boolean;
       acceptingApplications: boolean;
       reviewActive: boolean;
       statusLocked: boolean;
     }>('/admin/cycle');
   },
-  updateCycleSettings(id: string, body: { submissionCloseAt?: string; reviewCloseAt?: string }) {
+  updateCycleSettings(
+    id: string,
+    body: { submissionCloseAt?: string; reviewCloseAt?: string; interviewStartAt?: string; interviewEndAt?: string },
+  ) {
     return api<{ id: string }>(`/admin/cycle/${id}/settings`, { method: 'PATCH', body });
+  },
+  removeReviewer(id: string) {
+    return api<{ ok: true }>(`/admin/reviewers/${id}`, { method: 'DELETE' });
+  },
+  interviewRanking() {
+    return api<InterviewRanking>('/admin/interview/ranking');
+  },
+  interviewInvite(applicationIds: string[], message: string) {
+    return api<InviteResult>('/admin/interview/invite', { method: 'POST', body: { applicationIds, message } });
+  },
+  interviewSelection(applicationIds: string[], selected: boolean) {
+    return api<{ ok: true; count: number }>('/admin/interview/selection', {
+      method: 'POST',
+      body: { applicationIds, selected },
+    });
   },
   detail(id: string) {
     return api<AdminDetail>(`/admin/applications/${id}`);

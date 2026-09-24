@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { ArrowRight, CheckCircle2, Send, TriangleAlert } from 'lucide-react';
 import { reviewApi, type ReviewCandidate } from '../../lib/review-api';
 import { Modal, Input } from '../../components/ui';
-import { CRITERIA } from '../../lib/constants';
 import { HttpError } from '../../lib/api';
 
 const fullName = (c: ReviewCandidate) =>
@@ -23,15 +22,16 @@ export function SubmitAllModal({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const total = CRITERIA.length;
-  const ready = drafts.filter((d) => d.myScoredCount >= total);
-  const incomplete = drafts.filter((d) => d.myScoredCount < total);
+  const ready = drafts.filter((d) => d.myScoredCount >= d.stageTotal);
+  const incomplete = drafts.filter((d) => d.myScoredCount < d.stageTotal);
+  const readyDocs = ready.filter((d) => d.stage === 'document').length;
+  const readyFinals = ready.length - readyDocs;
 
   const [phase, setPhase] = useState<'summary' | 'confirm'>('summary');
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ submitted: number; skipped: number } | null>(null);
+  const [result, setResult] = useState<{ submitted: number; documents: number; finals: number; skipped: number } | null>(null);
   const canConfirm = typed.trim().toLowerCase() === 'submit all';
 
   async function doSubmit() {
@@ -39,7 +39,12 @@ export function SubmitAllModal({
     setError(null);
     try {
       const res = await reviewApi.submitAll();
-      setResult({ submitted: res.submitted, skipped: res.skipped.length });
+      setResult({
+        submitted: res.submitted,
+        documents: res.documentSubmitted,
+        finals: res.finalSubmitted,
+        skipped: res.skipped.length,
+      });
       onDone();
     } catch (err) {
       setError(err instanceof HttpError ? err.messages.join(' · ') : 'Could not submit. Please try again.');
@@ -61,6 +66,11 @@ export function SubmitAllModal({
           <h3 style={{ marginTop: 12, marginBottom: 6 }}>
             {result.submitted} assessment{result.submitted === 1 ? '' : 's'} submitted
           </h3>
+          <p className="muted" style={{ fontSize: 13.5, margin: '0 0 6px' }}>
+            {result.documents > 0 && <>{result.documents} Document Evaluation{result.documents === 1 ? '' : 's'}</>}
+            {result.documents > 0 && result.finals > 0 && ' · '}
+            {result.finals > 0 && <>{result.finals} final submission{result.finals === 1 ? '' : 's'}</>}
+          </p>
           {result.skipped > 0 && (
             <p className="muted" style={{ fontSize: 13.5 }}>
               {result.skipped} left in progress — finish scoring them to submit.
@@ -91,7 +101,15 @@ export function SubmitAllModal({
         </p>
         <div className="indep-banner clear" style={{ alignItems: 'center' }}>
           <CheckCircle2 size={18} />
-          <span><b>{ready.length}</b> fully evaluated and ready to submit.</span>
+          <span>
+            <b>{ready.length}</b> ready to submit
+            {readyDocs > 0 && readyFinals > 0
+              ? ` — ${readyDocs} Document Evaluation${readyDocs === 1 ? '' : 's'}, ${readyFinals} final`
+              : readyFinals > 0
+                ? ' as final submissions (Document + Interview)'
+                : ' as Document Evaluations (50%)'}
+            .
+          </span>
         </div>
         {incomplete.length > 0 && (
           <div className="indep-banner flag" style={{ display: 'block', alignItems: 'flex-start' }}>
@@ -104,7 +122,8 @@ export function SubmitAllModal({
             <ul style={{ margin: 0, paddingLeft: 18, fontWeight: 500, lineHeight: 1.7 }}>
               {incomplete.map((d) => (
                 <li key={d.id}>
-                  {fullName(d)} — <b>{d.myScoredCount} of {total}</b> criteria scored
+                  {fullName(d)} — <b>{d.myScoredCount} of {d.stageTotal}</b>{' '}
+                  {d.stage === 'interview' ? 'criteria scored (final)' : 'document criteria scored'}
                 </li>
               ))}
             </ul>

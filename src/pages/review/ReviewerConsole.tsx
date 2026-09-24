@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, CheckCircle2, Clock, Download, List, Lock, Scale, Send, Star, TriangleAlert, Users } from 'lucide-react';
+import { ArrowRight, CalendarClock, CheckCircle2, Clock, Download, List, Lock, Mic, Scale, Send, Star, TriangleAlert, Users } from 'lucide-react';
 import { reviewApi, type ReviewCandidate, type ReviewOverview, type ShortlistEntry } from '../../lib/review-api';
 import { Avatar, Modal, Stat } from '../../components/ui';
 import { scoreClass } from '../../lib/constants';
-import { fmtDate } from '../../lib/format';
+import { fmtDate, fmtDateTime } from '../../lib/format';
 import { ReviewScreen } from './ReviewScreen';
 import { SubmitAllModal } from './SubmitAllModal';
 
@@ -13,7 +13,7 @@ export function ReviewerConsole() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [shortlistOpen, setShortlistOpen] = useState(false);
   const [submitAllOpen, setSubmitAllOpen] = useState(false);
-  const [seg, setSeg] = useState<'all' | 'none' | 'draft' | 'submitted'>('all');
+  const [seg, setSeg] = useState<'all' | 'none' | 'draft' | 'submitted' | 'interview'>('all');
 
   async function reload() {
     const ov = await reviewApi.overview();
@@ -52,7 +52,15 @@ export function ReviewerConsole() {
               <Lock size={24} />
             </div>
             <div style={{ flex: 1 }}>
-              {overview.ended ? (
+              {overview.ended && overview.interviewEndAt && new Date(overview.interviewEndAt).getTime() > Date.now() ? (
+                <>
+                  <h3 style={{ fontSize: 17, marginBottom: 5 }}>Document Evaluation has closed</h3>
+                  <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.72)', lineHeight: 1.55, maxWidth: 560 }}>
+                    Stage 1 is complete. The Interview scoring and your final submission open once the interview period
+                    ends on <b>{fmtDateTime(overview.interviewEndAt)}</b>.
+                  </p>
+                </>
+              ) : overview.ended ? (
                 <>
                   <h3 style={{ fontSize: 17, marginBottom: 5 }}>The review period has ended</h3>
                   <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.72)', lineHeight: 1.55, maxWidth: 560 }}>
@@ -91,19 +99,33 @@ export function ReviewerConsole() {
     );
   }
 
+  // Once only the interview stage is open, the work is just the interview list —
+  // everyone else's Document Evaluation window has closed.
+  const interviewOnly = overview.interviewOpen && !overview.docOpen;
+  const work = interviewOnly ? candidates.filter((c) => c.interviewSelected) : candidates;
   const counts = {
-    all: candidates.length,
-    none: candidates.filter((c) => c.myStatus === 'none').length,
-    draft: candidates.filter((c) => c.myStatus === 'draft').length,
-    submitted: candidates.filter((c) => c.myStatus === 'submitted').length,
+    all: work.length,
+    none: work.filter((c) => c.myStatus === 'none').length,
+    draft: work.filter((c) => c.myStatus === 'draft').length,
+    submitted: work.filter((c) => c.myStatus === 'submitted').length,
+    interview: work.filter((c) => c.interviewSelected).length,
   };
-  const shown = seg === 'all' ? candidates : candidates.filter((c) => c.myStatus === seg);
+  const shown =
+    seg === 'all'
+      ? work
+      : seg === 'interview'
+        ? work.filter((c) => c.interviewSelected)
+        : work.filter((c) => c.myStatus === seg);
   const SEGMENTS: { key: typeof seg; label: string }[] = [
     { key: 'all', label: 'All' },
     { key: 'none', label: 'To assess' },
     { key: 'draft', label: 'In progress' },
     { key: 'submitted', label: 'Completed' },
+    ...(counts.interview > 0 && !interviewOnly ? [{ key: 'interview' as const, label: 'Interview list' }] : []),
   ];
+  const stageLine = overview.interviewOpen
+    ? `Stage 2 · Interview scoring open for ${overview.interviewCandidates} interview candidate${overview.interviewCandidates === 1 ? '' : 's'}`
+    : `Stage 1 · Document Evaluation${overview.reviewCloseAt ? ` open until ${fmtDateTime(overview.reviewCloseAt)}` : ''}`;
 
   return (
     <div className="page">
@@ -112,12 +134,32 @@ export function ReviewerConsole() {
           <div>
             <div className="eyebrow">Reviewer · Nomination &amp; Governance Committee</div>
             <h1>Candidate review console</h1>
-            <div className="ph-sub">Window closed · {overview.toAssess} applications available for assessment</div>
+            <div className="ph-sub">
+              {stageLine} · {overview.toAssess} applications
+            </div>
           </div>
           <button className="btn btn-dark" onClick={() => setShortlistOpen(true)}>
             <List size={17} /> Shortlist report
           </button>
         </div>
+
+        {!overview.interviewOpen && (
+          <div className="indep-banner info" style={{ marginBottom: 16, alignItems: 'center', fontSize: 13 }}>
+            <CalendarClock size={17} style={{ flex: '0 0 auto' }} />
+            <span>
+              Submit the <b>Document Evaluation (50%)</b> for each candidate now. The <b>Interview (50%)</b> part and
+              your final submission open{' '}
+              {overview.interviewEndAt ? (
+                <>
+                  after the interview period ends on <b>{fmtDateTime(overview.interviewEndAt)}</b>
+                </>
+              ) : (
+                'after the interview period (the Secretariat will set the dates)'
+              )}
+              , for candidates invited to interview.
+            </span>
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
           <Stat icon={<Clock size={20} />} value={counts.none} label="To assess (not reviewed)" accent />
@@ -153,7 +195,9 @@ export function ReviewerConsole() {
                 ? 'No candidates in progress. Saved drafts will appear here.'
                 : seg === 'submitted'
                   ? 'You haven’t completed any assessments yet.'
-                  : 'No candidates available.'}
+                  : seg === 'interview'
+                    ? 'No candidates are on the interview list yet.'
+                    : 'No candidates available.'}
           </div>
         ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(330px,1fr))', gap: 16 }}>
@@ -185,13 +229,31 @@ export function ReviewerConsole() {
               </div>
               <hr className="hr" />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                {a.myStatus === 'submitted' ? (
+                {a.myFinalSubmitted ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     <span className={`scorepill ${scoreClass(a.myScore)}`} style={{ fontSize: 14, minWidth: 44, padding: '5px 11px' }}>
                       {a.myScore}
                     </span>
                     <span style={{ fontSize: 12, color: 'var(--ok)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <CheckCircle2 size={13} /> Submitted
+                      <CheckCircle2 size={13} /> Final submitted
+                    </span>
+                  </div>
+                ) : a.stage === 'interview' && a.myStatus === 'none' ? (
+                  <span style={{ fontSize: 12.5, color: 'var(--brand-700)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <Mic size={14} /> Interview to score
+                    {a.myDocScore != null && <span className="muted" style={{ fontWeight: 600 }}>· doc {a.myDocScore}/50</span>}
+                  </span>
+                ) : a.myDocSubmitted && a.stage === 'document' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                    <span
+                      className={`scorepill ${scoreClass(a.myDocScore == null ? null : a.myDocScore * 2)}`}
+                      style={{ fontSize: 13, padding: '5px 10px' }}
+                      title="Document Evaluation points out of 50"
+                    >
+                      {a.myDocScore}/50
+                    </span>
+                    <span style={{ fontSize: 12, color: 'var(--ok)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <CheckCircle2 size={13} /> Document submitted
                     </span>
                   </div>
                 ) : a.myStatus === 'draft' ? (
@@ -205,6 +267,7 @@ export function ReviewerConsole() {
                 )}
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: 'var(--brand-700)' }}>
                   {a.myShortlist && <Star size={14} />}{' '}
+                  {a.interviewSelected && <Mic size={13} />}
                   {a.myStatus === 'submitted' ? 'View' : a.myStatus === 'draft' ? 'Continue' : 'Review'}{' '}
                   <ArrowRight size={15} />
                 </span>
@@ -217,7 +280,7 @@ export function ReviewerConsole() {
       {shortlistOpen && <ShortlistModal onClose={() => setShortlistOpen(false)} />}
       {submitAllOpen && (
         <SubmitAllModal
-          drafts={candidates.filter((c) => c.myStatus === 'draft')}
+          drafts={work.filter((c) => c.myStatus === 'draft')}
           onClose={() => setSubmitAllOpen(false)}
           onDone={() => void reload()}
         />

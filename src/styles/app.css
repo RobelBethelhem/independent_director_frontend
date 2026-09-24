@@ -2574,6 +2574,26 @@ table.dt tbody tr:last-child td {
   }
 }
 
+/* ---------- Admin table pagination ---------- */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+}
+.pager-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pager-btns .btn-sm {
+  min-width: 34px;
+  justify-content: center;
+}
+
 /* ---------- OTP ---------- */
 .otp-row {
   display: flex;

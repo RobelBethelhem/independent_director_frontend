@@ -132,14 +132,21 @@ export function AdminBoard({
                       <div className="kc-name">{fullName(a)}</div>
                       <div className="kc-role">{a.role}</div>
                     </div>
-                    {a.score != null && <span className={`scorepill ${scoreClass(a.score)}`}>{a.score}</span>}
+                    {a.score != null ? (
+                      <span className={`scorepill ${scoreClass(a.score)}`} title="Final average (/100)">{a.score}</span>
+                    ) : a.docScore != null ? (
+                      <span className={`scorepill ${scoreClass(a.docScore * 2)}`} title="Document Evaluation average (/50)">
+                        {a.docScore}
+                        <span style={{ fontSize: 9, opacity: 0.7 }}>/50</span>
+                      </span>
+                    ) : null}
                   </div>
-                  {a.evaluatorScores.some((s) => s != null) && (
+                  {(a.evaluatorScores.some((s) => s != null) || (a.evaluatorDocScores ?? []).some((s) => s != null)) && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {a.evaluatorScores.map((sv, i) => (
+                      {a.evaluatorScores.map((fv, i) => ({ fv, sv: fv ?? a.evaluatorDocScores?.[i] ?? null })).map(({ fv, sv }, i) => (
                         <span
                           key={i}
-                          title={`Evaluator ${i + 1}`}
+                          title={`Evaluator ${i + 1}${fv == null && sv != null ? ' · Document only (/50)' : ''}`}
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',

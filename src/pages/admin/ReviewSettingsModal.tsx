@@ -11,6 +11,9 @@ interface CycleInfo {
   title: string;
   submissionCloseAt: string;
   reviewCloseAt: string | null;
+  interviewStartAt: string | null;
+  interviewEndAt: string | null;
+  interviewScoringOpen: boolean;
   acceptingApplications: boolean;
   reviewActive: boolean;
   statusLocked: boolean;
@@ -29,6 +32,8 @@ export function ReviewSettingsModal({ onClose, onChanged }: { onClose: () => voi
   const [cycle, setCycle] = useState<CycleInfo | null>(null);
   const [submissionCloseAt, setSubmissionCloseAt] = useState('');
   const [reviewCloseAt, setReviewCloseAt] = useState('');
+  const [ivStart, setIvStart] = useState('');
+  const [ivEnd, setIvEnd] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -40,6 +45,8 @@ export function ReviewSettingsModal({ onClose, onChanged }: { onClose: () => voi
     setCycle(c);
     setSubmissionCloseAt(toLocalInput(c.submissionCloseAt));
     setReviewCloseAt(toLocalInput(c.reviewCloseAt));
+    setIvStart(toLocalInput(c.interviewStartAt));
+    setIvEnd(toLocalInput(c.interviewEndAt));
     setPending(p);
   }
   useEffect(() => {
@@ -48,7 +55,11 @@ export function ReviewSettingsModal({ onClose, onChanged }: { onClose: () => voi
 
   const bothSet = !!submissionCloseAt && !!reviewCloseAt;
   const orderOk = !bothSet || new Date(reviewCloseAt).getTime() > new Date(submissionCloseAt).getTime();
-  const canSave = bothSet && orderOk;
+  // Interview period is optional until the admin is ready, but both ends go together.
+  const ivPair = (!ivStart && !ivEnd) || (!!ivStart && !!ivEnd);
+  const ivOrderOk = !ivStart || !ivEnd || new Date(ivEnd).getTime() > new Date(ivStart).getTime();
+  const ivAfterClose = !ivStart || !submissionCloseAt || new Date(ivStart).getTime() > new Date(submissionCloseAt).getTime();
+  const canSave = bothSet && orderOk && ivPair && ivOrderOk && ivAfterClose;
 
   async function save() {
     if (!cycle || !canSave) return;
@@ -59,6 +70,9 @@ export function ReviewSettingsModal({ onClose, onChanged }: { onClose: () => voi
       await adminApi.updateCycleSettings(cycle.id, {
         submissionCloseAt: new Date(submissionCloseAt).toISOString(),
         reviewCloseAt: new Date(reviewCloseAt).toISOString(),
+        ...(ivStart && ivEnd
+          ? { interviewStartAt: new Date(ivStart).toISOString(), interviewEndAt: new Date(ivEnd).toISOString() }
+          : {}),
       });
       await load();
       setSaved(true);
@@ -108,10 +122,43 @@ export function ReviewSettingsModal({ onClose, onChanged }: { onClose: () => voi
               <Field label="Applications close" required hint="Reviewers gain access automatically once this passes">
                 <Input type="datetime-local" value={submissionCloseAt} onChange={(e) => setSubmissionCloseAt(e.target.value)} />
               </Field>
-              <Field label="Review closes" required hint="Must be after the applications-close date, above">
+              <Field label="Document review closes" required hint="Stage 1 · Document Evaluation (50%) deadline">
                 <Input type="datetime-local" value={reviewCloseAt} onChange={(e) => setReviewCloseAt(e.target.value)} />
               </Field>
             </div>
+
+            <div style={{ fontSize: 12.5, fontWeight: 700, margin: '14px 0 8px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              Interview time frame
+              {cycle.interviewScoringOpen && (
+                <span className="badge badge-short" style={{ fontSize: 10.5 }}>Interview scoring open</span>
+              )}
+            </div>
+            <div className="grid-2" style={{ marginBottom: 8 }}>
+              <Field label="Interview period starts" hint="Shown in the invitation SMS draft">
+                <Input type="datetime-local" value={ivStart} onChange={(e) => setIvStart(e.target.value)} />
+              </Field>
+              <Field label="Interview period ends" hint="Reviewers can then score the Interview (50%) and final-submit">
+                <Input type="datetime-local" value={ivEnd} onChange={(e) => setIvEnd(e.target.value)} />
+              </Field>
+            </div>
+            {!ivPair && (
+              <div className="indep-banner flag" style={{ marginBottom: 12, alignItems: 'center' }}>
+                <TriangleAlert size={16} />
+                <span>Set both the interview start and end.</span>
+              </div>
+            )}
+            {ivPair && !ivOrderOk && (
+              <div className="indep-banner flag" style={{ marginBottom: 12, alignItems: 'center' }}>
+                <TriangleAlert size={16} />
+                <span>The interview end must be after its start.</span>
+              </div>
+            )}
+            {ivPair && ivOrderOk && !ivAfterClose && (
+              <div className="indep-banner flag" style={{ marginBottom: 12, alignItems: 'center' }}>
+                <TriangleAlert size={16} />
+                <span>The interview period must start after applications close.</span>
+              </div>
+            )}
             {bothSet && !orderOk && (
               <div className="indep-banner flag" style={{ marginBottom: 12, alignItems: 'center' }}>
                 <TriangleAlert size={16} />

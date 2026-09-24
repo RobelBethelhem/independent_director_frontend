@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { UserPlus } from 'lucide-react';
+import { Trash2, UserPlus } from 'lucide-react';
 import { adminApi, type ReviewerRow } from '../../lib/admin-api';
 import { HttpError } from '../../lib/api';
 import { Field, Input, Modal } from '../../components/ui';
@@ -14,6 +14,23 @@ export function ReviewersModal({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ name: string; email: string; tempPassword: string } | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<ReviewerRow | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+
+  async function remove(r: ReviewerRow) {
+    setRemoving(true);
+    setRemoveError(null);
+    try {
+      await adminApi.removeReviewer(r.id);
+      setConfirmRemove(null);
+      await load();
+    } catch (err) {
+      setRemoveError(err instanceof HttpError ? err.messages.join(' · ') : 'Could not remove reviewer.');
+    } finally {
+      setRemoving(false);
+    }
+  }
 
   async function load() {
     setRows(await adminApi.reviewers());
@@ -77,12 +94,14 @@ export function ReviewersModal({ onClose }: { onClose: () => void }) {
         <p className="muted">No reviewers yet.</p>
       ) : (
         <div className="table-card">
+          {removeError && <div className="errmsg" style={{ margin: 10 }}>{removeError}</div>}
           <table className="dt">
             <thead>
               <tr>
                 <th>Reviewer</th>
-                <th>Assessments</th>
+                <th>Evaluations</th>
                 <th>Last login</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -92,8 +111,38 @@ export function ReviewersModal({ onClose }: { onClose: () => void }) {
                     <div style={{ fontWeight: 600 }}>{r.name ?? r.email}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{r.email}</div>
                   </td>
-                  <td>{r.reviewsSubmitted} submitted</td>
+                  <td style={{ fontSize: 12.5 }}>
+                    {r.documentsSubmitted} document · {r.reviewsSubmitted} final
+                  </td>
                   <td>{r.lastLoginAt ? fmtDate(r.lastLoginAt) : 'Never'}</td>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {confirmRemove?.id === r.id ? (
+                      <>
+                        <button className="btn btn-ghost btn-sm" disabled={removing} onClick={() => setConfirmRemove(null)}>
+                          Cancel
+                        </button>
+                        <button className="btn btn-primary btn-sm" style={{ marginLeft: 6 }} disabled={removing} onClick={() => void remove(r)}>
+                          {removing ? 'Removing…' : 'Yes, remove'}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        disabled={!r.removable}
+                        onClick={() => {
+                          setRemoveError(null);
+                          setConfirmRemove(r);
+                        }}
+                        title={
+                          r.removable
+                            ? 'Remove this reviewer (any unsubmitted drafts are discarded)'
+                            : 'Can’t remove — this reviewer has submitted evaluations'
+                        }
+                      >
+                        <Trash2 size={14} /> Remove
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

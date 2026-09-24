@@ -7,12 +7,24 @@ export interface ReviewOverview {
   reviewCloseAt: string | null;
   /** True when reviewCloseAt has passed (distinct from "not yet opened"). */
   ended: boolean;
+  /** Stage 1 (Document Evaluation) window is open. */
+  docOpen: boolean;
+  /** Stage 2 — interview period has ended; Interview scoring + final submit open. */
+  interviewOpen: boolean;
+  interviewStartAt: string | null;
+  interviewEndAt: string | null;
+  interviewCandidates: number;
   received: number;
   toAssess: number;
+  /** Final (both-stage) submissions by me. */
   reviewedByMe: number;
+  /** Document Evaluations submitted by me (incl. finals). */
+  documentDoneByMe: number;
   shortlisted: number;
   criteriaCount: number;
 }
+
+export type ReviewStage = 'document' | 'interview';
 
 export interface ReviewCandidate {
   id: string;
@@ -24,15 +36,28 @@ export interface ReviewCandidate {
   role: string;
   expertise: string[];
   flags: number;
+  /** Which stage this candidate is in for me right now. */
+  stage: ReviewStage;
+  interviewSelected: boolean;
+  myDocSubmitted: boolean;
+  myFinalSubmitted: boolean;
+  /** My Document Evaluation points (/50) once submitted. */
+  myDocScore: number | null;
+  /** My final total (/100) once final-submitted. */
   myScore: number | null;
   mySubmitted: boolean;
+  /** Relative to `stage`. */
   myStatus: 'none' | 'draft' | 'submitted';
   myScoredCount: number;
+  /** Criteria needed for this stage's submission (5 document / 8 final). */
+  stageTotal: number;
   myShortlist: boolean;
 }
 
 export interface SubmitAllResult {
   submitted: number;
+  documentSubmitted: number;
+  finalSubmitted: number;
   skipped: { id: string; name: string; scored: number; total: number }[];
 }
 
@@ -88,7 +113,25 @@ export interface ReviewDossier {
   documents: { id: string; docType: string; originalFilename: string }[];
   recommendation: { recommendedBy: string; recommenderEmail: string | null; message: string | null; recommendedAt: string } | null;
   myScores: Record<string, number>;
-  myReview: { comment: string | null; shortlistRecommended: boolean; submitted: boolean; weightedScore: string | null };
+  myReview: {
+    comment: string | null;
+    shortlistRecommended: boolean;
+    /** Final submission (both stages). */
+    submitted: boolean;
+    documentSubmitted: boolean;
+    weightedScore: string | null;
+    documentScore: string | null;
+    interviewScore: string | null;
+  };
+  stage: ReviewStage;
+  interviewSelected: boolean;
+  canEditDocument: boolean;
+  canEditInterview: boolean;
+  interviewBlockedReason: string | null;
+  docOpen: boolean;
+  interviewOpen: boolean;
+  interviewStartAt: string | null;
+  interviewEndAt: string | null;
 }
 
 export interface ShortlistEntry {
@@ -117,7 +160,10 @@ export const reviewApi = {
   putScores(id: string, scores: { criterionId: string; value: number }[]) {
     return api<ReviewDossier>(`/review/applications/${id}/scores`, { method: 'PUT', body: { scores } });
   },
-  putReview(id: string, body: { comment?: string; shortlistRecommended?: boolean; submitted?: boolean }) {
+  putReview(
+    id: string,
+    body: { comment?: string; shortlistRecommended?: boolean; submitted?: boolean; submitDocument?: boolean },
+  ) {
     return api<ReviewDossier>(`/review/applications/${id}/review`, { method: 'PUT', body });
   },
   shortlist() {
