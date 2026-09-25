@@ -8,7 +8,7 @@ import { fmtDateTime } from '../../lib/format';
 
 type Filter = 'all' | 'listed' | 'notlisted' | 'failed';
 
-/** Pending confirmation for an outward action (SMS goes to real phones). */
+/** Pending confirmation for an outward action (goes to real inboxes/phones). */
 type Confirm = { kind: 'send'; ids: string[] } | { kind: 'mark'; ids: string[] } | { kind: 'unmark'; ids: string[] };
 
 function defaultDraft(r: InterviewRanking | null): string {
@@ -28,7 +28,7 @@ const render = (tpl: string, row: InterviewRankRow) =>
 /**
  * Interview round: rank every applicant by their average Document Evaluation
  * score, pick the Top N (or any mix, in as many rounds as needed), and send
- * the interview-invitation SMS — in bulk or one at a time — with a clear
+ * the interview invitation by email + SMS — in bulk or one at a time — with a clear
  * per-recipient outcome so failures can be resent.
  */
 export function InterviewModal({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
@@ -118,16 +118,16 @@ export function InterviewModal({ onClose, onChanged }: { onClose: () => void; on
     <>
       <span style={{ marginRight: 'auto', fontSize: 13.5, fontWeight: 600 }}>
         {confirm.kind === 'send'
-          ? `Send the interview SMS to ${confirm.ids.length} applicant${confirm.ids.length === 1 ? '' : 's'}?`
+          ? `Send the interview invitation (email + SMS) to ${confirm.ids.length} applicant${confirm.ids.length === 1 ? '' : 's'}?`
           : confirm.kind === 'mark'
-            ? `Put ${confirm.ids.length} applicant${confirm.ids.length === 1 ? '' : 's'} on the interview list without SMS?`
+            ? `Put ${confirm.ids.length} applicant${confirm.ids.length === 1 ? '' : 's'} on the interview list without sending anything?`
             : `Remove ${confirm.ids.length} applicant${confirm.ids.length === 1 ? '' : 's'} from the interview list?`}
       </span>
       <button className="btn btn-ghost" disabled={busy} onClick={() => setConfirm(null)}>
         Cancel
       </button>
       <button className="btn btn-primary" disabled={busy} onClick={() => void run(confirm)}>
-        {busy ? 'Working…' : confirm.kind === 'send' ? 'Yes, send SMS' : 'Yes, continue'}
+        {busy ? 'Sending…' : confirm.kind === 'send' ? 'Yes, send invitation' : 'Yes, continue'}
       </button>
     </>
   ) : (
@@ -139,7 +139,7 @@ export function InterviewModal({ onClose, onChanged }: { onClose: () => void; on
         onClick={() => setConfirm({ kind: 'mark', ids: selIds })}
         title="Add to the interview list without texting them (e.g. invited by phone)"
       >
-        <UserPlus size={16} /> Add to list without SMS
+        <UserPlus size={16} /> Add to list without sending
       </button>
       <button className="btn btn-ghost" onClick={onClose}>
         Close
@@ -149,7 +149,7 @@ export function InterviewModal({ onClose, onChanged }: { onClose: () => void; on
         disabled={selIds.length === 0 || !draftOk || busy}
         onClick={() => setConfirm({ kind: 'send', ids: selIds })}
       >
-        <Send size={16} /> Send SMS to {selIds.length} selected
+        <Send size={16} /> Send invitation to {selIds.length} selected
       </button>
     </>
   );
@@ -184,9 +184,15 @@ export function InterviewModal({ onClose, onChanged }: { onClose: () => void; on
             >
               <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
                 {result.failed.length ? <TriangleAlert size={16} /> : <CheckCircle2 size={16} />}
-                SMS sent to {result.sent} of {result.total}.
-                {result.failed.length > 0 && ` ${result.failed.length} failed:`}
+                Invitation delivered to {result.sent} of {result.total}
+                {result.sent > 0 && ` (email: ${result.byEmail} · SMS: ${result.bySms})`}.
+                {result.failed.length > 0 && ` ${result.failed.length} not delivered:`}
               </div>
+              {result.sent > 0 && result.bySms === 0 && (
+                <div style={{ fontWeight: 500, fontSize: 12.5, marginTop: 4 }}>
+                  Sent by email only — SMS isn’t configured on the server yet, so no text messages went out.
+                </div>
+              )}
               {result.failed.length > 0 && (
                 <>
                   <ul style={{ margin: '8px 0 8px', paddingLeft: 18, fontWeight: 500, lineHeight: 1.7 }}>
@@ -211,10 +217,10 @@ export function InterviewModal({ onClose, onChanged }: { onClose: () => void; on
             </div>
           )}
 
-          {/* SMS draft */}
+          {/* Invitation message (email + SMS) */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
-              <MessageSquareText size={15} /> SMS draft
+              <MessageSquareText size={15} /> Invitation message (email + SMS)
               <span className="muted" style={{ fontWeight: 500, fontSize: 12 }}>
                 — <code>{'{name}'}</code> and <code>{'{reference}'}</code> are filled in for each applicant
               </span>
@@ -268,7 +274,7 @@ export function InterviewModal({ onClose, onChanged }: { onClose: () => void; on
                 ['all', 'All'],
                 ['listed', 'On interview list'],
                 ['notlisted', 'Not on list'],
-                ['failed', 'SMS failed'],
+                ['failed', 'Not delivered'],
               ] as const
             ).map(([k, l]) => (
               <span
@@ -341,16 +347,21 @@ export function InterviewModal({ onClose, onChanged }: { onClose: () => void; on
                     <td style={{ fontSize: 12.5 }}>{r.phone || <span className="errmsg" style={{ fontSize: 12 }}>No phone</span>}</td>
                     <td style={{ fontSize: 12.5 }}>
                       {r.inviteStatus === 'sent' ? (
-                        <span style={{ color: 'var(--ok)', fontWeight: 700 }}>
-                          SMS sent{r.invitedAt ? ` · ${fmtDateTime(r.invitedAt)}` : ''}
+                        <span style={{ color: 'var(--ok)', fontWeight: 700 }} title={r.inviteError ?? ''}>
+                          Sent by{' '}
+                          {r.inviteChannels === 'email+sms' ? 'email + SMS' : r.inviteChannels === 'sms' ? 'SMS' : 'email'}
+                          {r.invitedAt ? ` · ${fmtDateTime(r.invitedAt)}` : ''}
+                          {r.inviteChannels !== 'email+sms' && r.inviteError && (
+                            <div style={{ fontWeight: 500, fontSize: 11, color: 'var(--ink-3)', maxWidth: 230 }}>{r.inviteError}</div>
+                          )}
                         </span>
                       ) : r.inviteStatus === 'failed' ? (
                         <span style={{ color: 'var(--brand)', fontWeight: 700 }} title={r.inviteError ?? ''}>
-                          SMS failed
-                          <div style={{ fontWeight: 500, fontSize: 11.5, color: 'var(--ink-3)', maxWidth: 220 }}>{r.inviteError}</div>
+                          Not delivered
+                          <div style={{ fontWeight: 500, fontSize: 11.5, color: 'var(--ink-3)', maxWidth: 230 }}>{r.inviteError}</div>
                         </span>
                       ) : r.interviewSelected ? (
-                        <span style={{ fontWeight: 700 }}>On list (no SMS)</span>
+                        <span style={{ fontWeight: 700 }}>On list (not messaged)</span>
                       ) : (
                         <span className="muted">—</span>
                       )}
@@ -358,9 +369,9 @@ export function InterviewModal({ onClose, onChanged }: { onClose: () => void; on
                     <td onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                       <button
                         className="btn btn-soft btn-sm"
-                        disabled={busy || !draftOk || !r.phone}
+                        disabled={busy || !draftOk || (!r.phone && !r.email)}
                         onClick={() => setConfirm({ kind: 'send', ids: [r.id] })}
-                        title={r.phone ? 'Send the SMS to this applicant only' : 'No phone number on file'}
+                        title={r.phone || r.email ? 'Send the invitation to this applicant only' : 'No email or phone on file'}
                       >
                         <Send size={13} /> {r.inviteStatus ? 'Resend' : 'Send'}
                       </button>

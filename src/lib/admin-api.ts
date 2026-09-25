@@ -90,12 +90,16 @@ export interface InterviewRankRow {
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
+  email: string | null;
   status: ApplicationStatus;
   docScore: number | null;
   docReviews: number;
   rank: number | null;
   interviewSelected: boolean;
   inviteStatus: 'sent' | 'failed' | null;
+  /** Channels that delivered: 'email' | 'sms' | 'email+sms'. */
+  inviteChannels: string | null;
+  /** Why a channel didn't deliver (kept even when the other one succeeded). */
   inviteError: string | null;
   invitedAt: string | null;
 }
@@ -110,6 +114,8 @@ export interface InterviewRanking {
 export interface InviteResult {
   total: number;
   sent: number;
+  byEmail: number;
+  bySms: number;
   failed: { id: string; name: string; reason: string }[];
 }
 
